@@ -1,0 +1,15 @@
+/* Jetons de design : couleurs (thèmes clair et sombre) et polices */
+/* Mise en page : en-tête + onglets ; carnet de cuisine utilitaire, une colonne sur téléphone */
+:root {
+  --bg: #f6f7f3; --surface: #ffffff; --fg: #1d2420; --muted: #5d6a62; --line: #dde3dc;
+  --accent: #2f7a4f; --accent-soft: #e2f0e6; --warn: #b5651d; --warn-soft: #f8eadb;
+  --f-display: ui-rounded, "SF Pro Rounded", "Avenir Next", system-ui, sans-serif;
+  --f-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141916; --surface: #1c231f; --fg: #e6ece7; --muted: #9aa89f; --line: #2d3832;
+  --accent: #6cc392; --accent-soft: #1f3528; --warn: #e3a062; --warn-soft: #3a2a1b; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141916; --surface: #1c231f; --fg: #e6ece7; --muted: #9aa89f; --line: #2d3832;
+  --accent: #6cc392; --accent-soft: #1f3528; --warn: #e3a062; --warn-soft: #3a2a1b; color-scheme: dark; }

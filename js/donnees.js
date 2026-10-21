@@ -1,0 +1,237 @@
+"use strict";
+// ---------- Données d'exemple (inventées, cuisinables, pour 5 personnes) ----------
+const CUISINES = { asiatique: "Asiatique", indienne: "Indienne", mexicaine: "Mexicaine", mediterraneenne: "Méditerranéenne", africaine: "Africaine" };
+// Objectifs du mois ; les légumes ne sont pas un objectif : ils comptent toujours
+const OBJECTIFS = [
+  { cle: "energie", court: "Énergie", nom: "Gagner en énergie",
+    comment: "Des glucides lents, des protéines et des fibres au même repas évitent le coup de barre de l'après-repas. Le fer et le magnésium limitent la fatigue de fond.",
+    assiette: "Légumineuses, céréales complètes, légumes verts, œufs.",
+    action: "Favorise les plats complets : féculent complet + protéine + légume." },
+  { cle: "ig", court: "IG bas", nom: "IG bas (glycémie stable)",
+    comment: "Un repas à index glycémique bas fait monter le sucre sanguin lentement : moins de fringales et moins de baisses d'énergie. Fibres, protéines et bonnes graisses ralentissent l'absorption ; cuire al dente et refroidir le riz aussi.",
+    assiette: "Lentilles, pois chiches, pâtes complètes al dente, sarrasin, légumes.",
+    action: "Favorise légumineuses et légumes ; met moins souvent le riz blanc et la pomme de terre en base." },
+  { cle: "stress", court: "Stress", nom: "Baisse du stress (cortisol)",
+    comment: "L'alimentation joue un rôle modeste mais réel : une glycémie stable évite des pics de cortisol ; magnésium et oméga-3 sont associés à une meilleure gestion du stress. Le sommeil et l'activité physique pèsent plus lourd.",
+    assiette: "Poissons gras, légumineuses, légumes verts à feuilles, repas à heures régulières.",
+    action: "Favorise les plats riches en oméga-3 et en magnésium." },
+  { cle: "inflammation", court: "Inflammation", nom: "Moins d'inflammation",
+    comment: "Une inflammation de fond basse est associée à plus d'énergie et à une meilleure récupération. Le profil qui aide : légumes colorés, huile d'olive, poissons gras, épices, peu de produits ultra-transformés.",
+    assiette: "Tomates cuites, légumes orange et verts, curcuma, gingembre, huile d'olive, saumon.",
+    action: "Favorise les profils méditerranéens et épicés, cuisinés maison." },
+  { cle: "sommeil", court: "Sommeil", nom: "Mieux dormir",
+    comment: "Un dîner léger, pris 2 à 3 h avant le coucher, sans excès de gras ni de piment, aide l'endormissement. Des glucides complets et du tryptophane (œufs, volaille, légumineuses) le soir peuvent aider.",
+    assiette: "Soupes, poisson, légumineuses, céréales complètes.",
+    action: "Favorise les dîners légers et digestes." },
+  { cle: "force", court: "Force", nom: "Avoir plus de force",
+    comment: "Le muscle se construit avec l'entraînement, puis avec des protéines réparties sur la journée (environ 1,2 à 2 g par kg et par jour chez une personne qui s'entraîne) et assez d'énergie au total.",
+    assiette: "Œufs, volaille, poisson, bœuf, tofu, légumineuses + céréales.",
+    action: "Favorise les plats riches en protéines." },
+  { cle: "budget", court: "Budget", nom: "Petit budget",
+    comment: "Cuisiner en grande quantité et s'appuyer sur le placard du mois fait chuter le coût par repas. Les légumineuses et les légumes de saison sont les moins chers.",
+    assiette: "Lentilles, pois chiches, œufs, légumes de saison, riz.",
+    action: "Favorise les recettes au coût par portion le plus bas." },
+  { cle: "monde", court: "Monde", nom: "Découvrir le monde",
+    comment: "Varier les cuisines entretient l'envie de cuisiner, et chaque cuisine apprend une technique ou une association d'épices.",
+    assiette: "Variantes asiatiques, indiennes, mexicaines, méditerranéennes, africaines.",
+    action: "Favorise les recettes d'origines variées." }
+];
+const SYSTEME = ["IG bas", "Énergie stable", "Moins de cortisol", "Meilleur sommeil", "Récupération", "Plus de force"];
+// obj : note 0 à 3 par objectif [energie, ig, legumes, force, budget, monde] ; stress, inflammation et sommeil sont dans INFOS
+const R = (id, nom, origine, legume, technique, temps, riz, o, ing, etapes, variantes) => ({ id, nom, origine, legume, technique, temps, riz,
+  obj: { energie: o[0], ig: o[1], legumes: o[2], force: o[3], budget: o[4], monde: o[5] }, ing, etapes, variantes: variantes.map(v => ({ nom: v[0], cuisine: v[1], ajout: v[2] })) });
+const RECETTES = [
+  R("courgette_poischiche", "Poêlée de courgettes et pois chiches", "Méditerranée", "courgette", "sauter", 25, true, [2,3,3,2,3,1],
+    ["6 courgettes", "2 boîtes de pois chiches", "2 oignons", "3 gousses d'ail", "1 citron", "1 bouquet de persil"],
+    ["Couper les courgettes en demi-lunes épaisses.", "Faire dorer les oignons 5 min dans l'huile.", "Ajouter les courgettes à feu vif 8 min, en remuant peu pour qu'elles colorent.", "Ajouter pois chiches égouttés et ail, 3 min. Finir citron, sel, persil."],
+    [["Façon wok", "asiatique", "sauce soja, gingembre, graines de sésame"], ["Façon masala", "indienne", "cumin, curcuma, un peu de lait de coco"], ["Façon tex-mex", "mexicaine", "paprika fumé, cumin, maïs"]]),
+  R("dal_lentilles", "Dal de lentilles corail aux épinards", "Inde", "épinard", "mijoter", 35, true, [3,3,2,3,3,2],
+    ["500 g de lentilles corail", "2 oignons", "400 ml de lait de coco", "1 boîte de tomates concassées", "300 g d'épinards", "1 morceau de gingembre"],
+    ["Faire revenir oignon et gingembre râpé 5 min.", "Ajouter 1 c. à s. de curry, 1 min.", "Ajouter lentilles rincées, tomates, coco et 600 ml d'eau ; mijoter 20 min.", "Ajouter les épinards 2 min avant la fin. Saler."],
+    [["Dal tadka", "indienne", "huile chaude au cumin et à l'ail versée dessus"], ["Soupe façon harira", "africaine", "cumin, cannelle, citron, plus d'eau"], ["Curry thaï", "asiatique", "pâte de curry rouge, citron vert"]]),
+  R("riz_saute", "Riz sauté aux légumes et œufs", "Chine", "carotte et petits pois", "sauter au wok", 20, true, [3,1,2,2,3,2],
+    ["750 g de riz (cuit la veille)", "6 œufs", "3 carottes", "300 g de petits pois surgelés", "4 oignons nouveaux", "Sauce soja"],
+    ["Cuire le riz la veille et le laisser refroidir (c'est le secret).", "Brouiller les œufs dans le wok, réserver.", "Sauter carottes en dés et petits pois 4 min à feu vif.", "Ajouter le riz, la sauce soja, les œufs, les oignons nouveaux."],
+    [["Nasi goreng", "asiatique", "sambal, oignons frits, œuf au plat"], ["Riz frit tex-mex", "mexicaine", "haricots noirs, piment, citron vert"], ["Riz sauté masala", "indienne", "curcuma, cumin, coriandre"]]),
+  R("ratatouille", "Ratatouille rapide", "France", "aubergine et poivron", "mijoter", 45, false, [2,3,3,0,2,1],
+    ["2 aubergines", "3 courgettes", "3 poivrons", "4 tomates", "2 oignons", "Herbes de Provence"],
+    ["Couper tous les légumes en cubes de même taille.", "Saisir aubergines puis poivrons séparément, à feu vif.", "Tout réunir avec oignons et tomates, herbes, sel.", "Mijoter 25 min à couvert."],
+    [["Chakchouka express", "africaine", "œufs pochés dedans, cumin"], ["Caponata", "mediterraneenne", "vinaigre, câpres, olives"], ["Ratatouille au riz épicé", "indienne", "garam masala, servie sur riz"]]),
+  R("plaque_poulet", "Poulet rôti et légumes racines sur plaque", "France", "carotte, panais, patate douce", "rôtir au four", 50, false, [2,2,3,3,2,0],
+    ["1,5 kg de hauts de cuisse de poulet", "1 kg de carottes", "600 g de panais", "2 patates douces", "2 oignons rouges", "Thym"],
+    ["Four à 210 °C. Couper les légumes en gros bâtons.", "Huile, sel, thym, bien mélanger sur la plaque.", "Poser le poulet par-dessus, peau vers le haut.", "Cuire 40 min, sans ouvrir la porte les 20 premières minutes."],
+    [["Plaque tandoori", "indienne", "yaourt et garam masala sur le poulet"], ["Plaque tex-mex", "mexicaine", "paprika, cumin, citron vert"], ["Plaque marocaine", "africaine", "ras el hanout, citron"]]),
+  R("minestrone", "Minestrone", "Italie", "haricots verts, courgette, carotte", "mijoter", 40, false, [2,3,3,2,3,1],
+    ["3 carottes", "2 courgettes", "200 g de haricots verts", "1 boîte de haricots blancs", "200 g de petites pâtes complètes", "1 boîte de tomates concassées"],
+    ["Faire revenir oignon et carottes en dés 5 min.", "Ajouter tomates et 2 L d'eau, porter à ébullition.", "Ajouter courgettes, haricots verts, pâtes ; 12 min.", "Ajouter les haricots blancs. Huile d'olive et parmesan."],
+    [["Soupe miso-légumes", "asiatique", "miso et tofu en fin de cuisson"], ["Harira", "africaine", "pois chiches, cumin, cannelle"], ["Sopa de tortilla", "mexicaine", "piment, chips de tortilla"]]),
+  R("chili_sin", "Chili sin carne", "Mexique", "poivron et maïs", "mijoter", 40, true, [3,3,2,3,3,2],
+    ["2 boîtes de haricots rouges", "1 boîte de maïs", "2 poivrons", "2 oignons", "2 boîtes de tomates concassées", "200 g de lentilles vertes"],
+    ["Faire revenir oignons et poivrons 8 min.", "Ajouter 2 c. à c. de cumin et 1 de paprika, 1 min.", "Ajouter tomates, lentilles et 400 ml d'eau ; 20 min.", "Ajouter haricots et maïs, 10 min. Servir sur riz."],
+    [["Burrito bowl", "mexicaine", "avocat, citron vert, coriandre"], ["Rajma", "indienne", "garam masala, gingembre"], ["Chili con carne", "mexicaine", "500 g de bœuf haché saisi au début"]]),
+  R("boeuf_brocoli", "Bœuf sauté aux brocolis", "Chine", "brocoli", "sauter au wok", 25, true, [3,2,3,3,1,2],
+    ["800 g de bœuf en lanières", "3 brocolis", "3 gousses d'ail", "1 morceau de gingembre", "Sauce soja", "1 c. à s. de fécule"],
+    ["Mariner le bœuf 10 min : soja, fécule.", "Blanchir les fleurettes de brocoli 2 min.", "Saisir le bœuf par petites quantités, wok très chaud.", "Ajouter brocoli, ail, gingembre, un fond d'eau ; 2 min."],
+    [["Bœuf teriyaki", "asiatique", "mirin, un peu de sucre"], ["Kung pao", "asiatique", "cacahuètes, piment séché"], ["Sauté au curry", "indienne", "curry et yaourt"]]),
+  R("tajine_legumes", "Tajine de légumes et pois chiches", "Maroc", "courge et carotte", "mijoter", 50, false, [2,2,3,2,3,3],
+    ["1 courge butternut", "4 carottes", "2 courgettes", "2 boîtes de pois chiches", "2 oignons", "100 g de raisins secs", "500 g de semoule"],
+    ["Faire revenir oignons avec 2 c. à c. de ras el hanout.", "Ajouter courge et carottes en gros morceaux, 500 ml d'eau ; 20 min.", "Ajouter courgettes, pois chiches, raisins ; 15 min.", "Servir avec la semoule."],
+    [["Mafé de légumes", "africaine", "beurre de cacahuète, tomate"], ["Curry de courge", "indienne", "lait de coco, curcuma"], ["Version citron-olives", "mediterraneenne", "olives, citron"]]),
+  R("tortilla_esp", "Tortilla espagnole aux épinards", "Espagne", "pomme de terre et épinard", "cuire à la poêle", 35, false, [2,1,2,3,3,2],
+    ["10 œufs", "1 kg de pommes de terre", "2 oignons", "200 g d'épinards"],
+    ["Cuire pommes de terre en fines tranches et oignons à feu doux 15 min.", "Battre les œufs, ajouter épinards et légumes.", "Cuire à feu doux 8 min à couvert.", "Retourner avec une assiette, 3 min."],
+    [["Frittata courgette-feta", "mediterraneenne", "courgette, feta, menthe"], ["Omelette roulée coréenne", "asiatique", "oignon nouveau, carotte"], ["Masala omelette", "indienne", "piment, coriandre, tomate"]]),
+  R("saumon_papillote", "Saumon en papillote, haricots verts", "France", "haricots verts", "papillote au four", 30, true, [3,2,2,3,1,1],
+    ["5 pavés de saumon", "800 g de haricots verts", "2 citrons", "1 morceau de gingembre", "Sauce soja"],
+    ["Four à 200 °C. Cuire les haricots verts 6 min à l'eau.", "Sur papier cuisson : haricots, saumon, citron, gingembre.", "Fermer hermétiquement.", "Cuire 15 min."],
+    [["Saumon teriyaki", "asiatique", "sauce teriyaki, sésame"], ["Saumon tikka", "indienne", "yaourt et épices tikka"], ["Saumon à la grecque", "mediterraneenne", "tomates, olives, origan"]]),
+  R("gratin_choufleur", "Gratin de chou-fleur", "France", "chou-fleur", "gratiner", 45, false, [1,3,3,2,2,0],
+    ["2 chou-fleurs", "50 cl de lait", "40 g de farine", "40 g de beurre", "150 g d'emmental", "Noix de muscade"],
+    ["Cuire les fleurettes 8 min à l'eau salée, bien égoutter.", "Béchamel : beurre fondu, farine, puis lait en fouettant.", "Muscade, sel, la moitié du fromage.", "Napper, fromage, four 200 °C 20 min."],
+    [["Aloo gobi", "indienne", "sans gratin : pommes de terre, curcuma, cumin"], ["Chou-fleur rôti au za'atar", "mediterraneenne", "tahini, citron"], ["Chou-fleur sauce coréenne", "asiatique", "gochujang, miel"]]),
+  R("bowl_patate", "Bowl patate douce et pois chiches rôtis", "Monde", "patate douce, chou kale, carotte", "rôtir et assembler", 35, true, [3,2,3,2,2,2],
+    ["3 patates douces", "300 g de chou kale ou d'épinards", "3 carottes", "2 boîtes de pois chiches", "2 avocats", "Tahini"],
+    ["Four à 210 °C : patates douces en cubes et pois chiches, 25 min.", "Râper les carottes, masser le kale avec sel et citron.", "Sauce : tahini, citron, eau.", "Assembler sur riz."],
+    [["Bowl façon poke", "asiatique", "edamame, sauce soja, sésame"], ["Bowl mexicain", "mexicaine", "haricots noirs, maïs, salsa"], ["Bowl libanais", "mediterraneenne", "houmous, concombre, menthe"]]),
+  R("pates_rotis", "Pâtes complètes aux légumes rôtis", "Italie", "poivron, courgette, tomate cerise", "rôtir au four", 30, false, [3,2,3,1,3,1],
+    ["750 g de pâtes complètes", "3 poivrons", "2 courgettes", "500 g de tomates cerises", "1 mozzarella", "Basilic"],
+    ["Four à 220 °C : légumes en morceaux, huile, sel ; 20 min.", "Cuire les pâtes.", "Mélanger pâtes et légumes avec un peu d'eau de cuisson.", "Mozzarella et basilic à la fin."],
+    [["Pâtes à la feta rôtie", "mediterraneenne", "un bloc de feta rôti au milieu"], ["Nouilles sautées", "asiatique", "sauce soja, sésame"], ["Pâtes harissa", "africaine", "harissa, pois chiches"]]),
+  R("curry_vert", "Curry vert de légumes et tofu", "Thaïlande", "aubergine, haricots verts", "mijoter", 30, true, [2,2,3,2,2,3],
+    ["2 aubergines", "300 g de haricots verts", "2 courgettes", "800 ml de lait de coco", "2 c. à s. de pâte de curry vert", "400 g de tofu ferme"],
+    ["Faire revenir la pâte de curry 1 min.", "Ajouter le lait de coco, porter à frémissement.", "Ajouter aubergines puis haricots et courgettes, 12 min.", "Ajouter le tofu en dés, 3 min. Citron vert."],
+    [["Curry rouge au poulet", "asiatique", "poulet à la place du tofu"], ["Korma de légumes", "indienne", "amandes, yaourt"], ["Curry à l'arachide", "africaine", "beurre de cacahuète"]]),
+  R("soupe_potiron", "Soupe de potiron au gingembre", "France", "potiron", "mijoter et mixer", 35, false, [1,2,3,0,3,1],
+    ["1,5 kg de potiron", "2 oignons", "3 pommes de terre", "1 morceau de gingembre", "20 cl de crème"],
+    ["Faire revenir oignons et gingembre 5 min.", "Ajouter potiron et pommes de terre en cubes, couvrir d'eau.", "Cuire 20 min.", "Mixer, ajouter la crème, saler."],
+    [["Soupe thaï coco", "asiatique", "lait de coco, citronnelle"], ["Soupe aux lentilles corail", "indienne", "lentilles et curry"], ["Soupe marocaine", "africaine", "cumin, pois chiches"]]),
+  R("fajitas", "Fajitas poulet-poivrons", "Mexique", "poivron et oignon", "sauter", 30, true, [3,2,2,3,2,2],
+    ["1 kg de blancs de poulet", "4 poivrons", "3 oignons", "15 tortillas", "2 citrons verts", "Crème épaisse"],
+    ["Couper poulet et légumes en lanières.", "Mariner le poulet : cumin, paprika, citron vert, 10 min.", "Saisir le poulet, réserver ; sauter les légumes 6 min.", "Tout réunir, servir dans les tortillas."],
+    [["Bol de riz fajitas", "mexicaine", "sur riz, avec haricots"], ["Poulet sauté asiatique", "asiatique", "soja, gingembre"], ["Wraps shawarma", "mediterraneenne", "yaourt, cumin, ail"]]),
+  R("lentilles_carottes", "Lentilles vertes aux carottes", "France", "carotte et poireau", "mijoter", 40, false, [3,3,2,3,3,0],
+    ["600 g de lentilles vertes", "5 carottes", "2 poireaux", "1 oignon", "Thym, laurier"],
+    ["Rincer les lentilles.", "Faire revenir oignon, poireaux, carottes 5 min.", "Ajouter lentilles, thym, laurier, 3 fois leur volume d'eau.", "Cuire 25 min, saler à la fin seulement."],
+    [["Salade de lentilles", "mediterraneenne", "vinaigrette, feta, oignon rouge"], ["Dal à la tomate", "indienne", "tomate, crème, garam masala"], ["Lentilles chipotle", "mexicaine", "piment chipotle, maïs"]]),
+  R("poisson_epinards", "Poisson blanc, épinards et citron", "Méditerranée", "épinard et tomate", "cuire à la poêle", 20, true, [2,3,2,3,2,1],
+    ["5 filets de cabillaud ou de colin", "600 g d'épinards", "500 g de tomates cerises", "2 citrons", "3 gousses d'ail"],
+    ["Faire tomber épinards et ail 3 min, réserver.", "Saisir les tomates cerises 3 min.", "Cuire le poisson 3 min par face, sans le bouger.", "Servir avec citron, sur riz."],
+    [["Poisson curry-coco", "indienne", "lait de coco, curry"], ["Poisson vapeur gingembre", "asiatique", "gingembre, soja, oignon nouveau"], ["Tacos de poisson", "mexicaine", "chou cru, citron vert, tortillas"]]),
+  R("chakchouka", "Chakchouka", "Maghreb", "poivron et tomate", "mijoter", 30, false, [2,3,3,2,3,3],
+    ["4 poivrons", "2 boîtes de tomates", "2 oignons", "10 œufs", "Cumin", "Pain complet"],
+    ["Faire revenir oignons et poivrons en lanières 10 min.", "Ajouter tomates et cumin, 10 min.", "Creuser des puits, casser les œufs dedans.", "Couvrir 6 min. Servir avec le pain."],
+    [["Huevos rancheros", "mexicaine", "haricots noirs, tortillas"], ["Egg curry", "indienne", "garam masala, coriandre"], ["Œufs à la turque", "mediterraneenne", "yaourt à l'ail, beurre au paprika"]]),
+  R("galettes_legumes", "Galettes courgette-carotte", "Europe de l'Est", "courgette et carotte", "cuire à la poêle", 30, false, [2,2,3,2,3,2],
+    ["4 courgettes", "4 carottes", "4 œufs", "100 g de farine", "150 g de feta", "Yaourt nature"],
+    ["Râper courgettes et carottes, presser fort pour retirer l'eau.", "Mélanger avec œufs, farine, feta émiettée.", "Cuire des petites galettes 3 min par face.", "Servir avec yaourt salé."],
+    [["Pajeon", "asiatique", "oignon nouveau, sauce soja vinaigrée"], ["Pakoras", "indienne", "farine de pois chiche, cumin"], ["Mücver", "mediterraneenne", "aneth, menthe"]]),
+  R("poulet_basquaise", "Poulet basquaise", "Pays basque", "poivron et tomate", "mijoter", 50, true, [2,2,2,3,2,1],
+    ["1,5 kg de hauts de cuisse", "4 poivrons", "2 oignons", "2 boîtes de tomates", "3 gousses d'ail", "Piment d'Espelette"],
+    ["Dorer le poulet, réserver.", "Faire revenir oignons et poivrons 10 min.", "Ajouter tomates, ail, piment ; remettre le poulet.", "Mijoter 30 min à couvert."],
+    [["Poulet yassa", "africaine", "beaucoup d'oignons, citron, moutarde"], ["Poulet tikka masala", "indienne", "yaourt, garam masala, crème"], ["Pollo en salsa roja", "mexicaine", "piment, cumin"]]),
+  R("soba_legumes", "Nouilles soba sautées aux légumes", "Japon", "chou, champignons, carotte", "sauter au wok", 20, false, [3,2,3,1,2,3],
+    ["500 g de nouilles soba", "1/2 chou chinois", "300 g de champignons", "3 carottes", "Sauce soja", "Graines de sésame"],
+    ["Cuire les soba, rincer à l'eau froide.", "Sauter carottes en julienne et champignons 4 min.", "Ajouter le chou émincé, 2 min.", "Ajouter nouilles et soja, sésame."],
+    [["Yakisoba au porc", "asiatique", "lanières de porc, sauce yakisoba"], ["Façon pad thaï", "asiatique", "cacahuètes, citron vert, œuf"], ["Nouilles hakka", "indienne", "vinaigre, piment"]]),
+  R("haricots_kale", "Haricots blancs, tomate et chou kale", "Italie", "chou kale", "mijoter", 35, false, [2,3,3,2,3,1],
+    ["3 boîtes de haricots blancs", "300 g de chou kale", "2 boîtes de tomates", "2 oignons", "3 gousses d'ail", "Romarin"],
+    ["Faire revenir oignons, ail, romarin.", "Ajouter tomates, 15 min.", "Ajouter haricots et kale émincé, 10 min.", "Huile d'olive crue, pain grillé."],
+    [["Ful medames", "africaine", "cumin, citron, huile d'olive"], ["Frijoles", "mexicaine", "haricots noirs, piment"], ["Haricots au curry", "indienne", "curry, coco"]])
+];
+const PAR_ID = Object.fromEntries(RECETTES.map(r => [r.id, r]));
+// [prix estimé en € pour 5 (fictif), stress, inflammation, sommeil, bénéfices]
+const INFOS = {
+  courgette_poischiche: [9, 2, 2, 2, "Fibres et protéines végétales : rassasie longtemps sans coup de barre ; magnésium des pois chiches."],
+  dal_lentilles: [8, 2, 3, 2, "Lentilles, curcuma et gingembre : énergie stable (IG bas), effet anti-inflammatoire, fer et folates des épinards."],
+  riz_saute: [7, 1, 1, 1, "Repas complet et économique ; les œufs apportent des protéines complètes. IG plus élevé : le riz refroidi la veille le baisse un peu."],
+  ratatouille: [11, 2, 3, 1, "Riche en antioxydants (tomate, poivron, aubergine cuits à l'huile d'olive) : aide contre l'inflammation."],
+  plaque_poulet: [18, 1, 2, 2, "Protéines et légumes racines : force et récupération ; bêta-carotène des carottes et patates douces."],
+  minestrone: [9, 2, 2, 2, "Beaucoup de légumes et de légumineuses, très hydratant ; un dîner léger qui aide à bien dormir."],
+  chili_sin: [10, 2, 2, 2, "Légumineuses : fibres, fer et protéines végétales ; une énergie qui tient toute la soirée."],
+  boeuf_brocoli: [20, 1, 2, 1, "Fer et protéines du bœuf pour la force ; la vitamine C du brocoli aide à absorber le fer."],
+  tajine_legumes: [12, 2, 2, 2, "Épices douces (cannelle, curcuma) et légumes orange riches en antioxydants ; semoule pour l'énergie."],
+  tortilla_esp: [9, 1, 1, 2, "Œufs : protéines et choline ; apprend la cuisson à feu doux."],
+  saumon_papillote: [24, 3, 3, 3, "Oméga-3 du saumon : anti-inflammatoire, associé à un meilleur sommeil et à moins de stress."],
+  gratin_choufleur: [10, 1, 1, 2, "Chou-fleur pauvre en glucides (IG bas) ; calcium du fromage."],
+  bowl_patate: [15, 2, 3, 2, "Fibres, bonnes graisses (avocat, tahini) et magnésium : énergie stable, effet anti-inflammatoire."],
+  pates_rotis: [10, 1, 2, 1, "Pâtes complètes al dente : IG modéré ; légumes rôtis riches en vitamines."],
+  curry_vert: [14, 2, 2, 2, "Tofu (protéines, magnésium) et légumes variés dans une sauce parfumée."],
+  soupe_potiron: [7, 2, 2, 3, "Dîner léger, chaud et digeste, favorable au sommeil ; bêta-carotène."],
+  fajitas: [17, 1, 1, 1, "Protéines maigres pour la force ; poivrons très riches en vitamine C."],
+  lentilles_carottes: [7, 2, 2, 2, "Le meilleur rapport prix-nutrition : fer, fibres, IG bas."],
+  poisson_epinards: [19, 2, 3, 2, "Protéines maigres et magnésium des épinards : léger et anti-inflammatoire."],
+  chakchouka: [9, 2, 2, 1, "Lycopène des tomates cuites et protéines des œufs, pour un petit prix."],
+  galettes_legumes: [9, 1, 1, 1, "Deux légumes cachés dans une galette : une bonne porte d'entrée vers les légumes."],
+  poulet_basquaise: [16, 1, 2, 1, "Protéines et poivrons-tomates mijotés : force et antioxydants."],
+  soba_legumes: [11, 1, 2, 1, "Sarrasin : IG plus bas que les pâtes blanches, et du magnésium."],
+  haricots_kale: [9, 2, 3, 2, "Kale très riche en vitamine K et en antioxydants ; légumineuses pour la satiété."]
+};
+for (const r of RECETTES) {
+  const [prix, stress, inflammation, sommeil, benefice] = INFOS[r.id];
+  Object.assign(r, { prix, benefice });
+  Object.assign(r.obj, { stress, inflammation, sommeil });
+}
+
+const PLACARD_BASE = [
+  ["Riz basmati", "10 kg (dont la portion double)"], ["Riz complet", "3 kg"], ["Huile d'olive", "2 L"], ["Huile neutre", "1 L"],
+  ["Oignons", "5 kg"], ["Ail", "3 têtes"], ["Pâtes complètes", "3 kg"], ["Lentilles corail et vertes", "2 kg"],
+  ["Pois chiches et haricots (boîtes)", "12 boîtes"], ["Tomates concassées", "12 boîtes"], ["Lait de coco", "6 briques"], ["Sauce soja", "1 L"]
+];
+const PLACARD_CUISINES = {
+  asiatique: ["Gingembre", "Graines de sésame", "Pâte de curry rouge", "Mirin", "Sambal"],
+  indienne: ["Cumin", "Curcuma", "Garam masala", "Curry en poudre", "Graines de moutarde"],
+  mexicaine: ["Paprika fumé", "Cumin", "Piment chipotle", "Origan", "Tortillas (congélateur)"],
+  mediterraneenne: ["Herbes de Provence", "Origan", "Za'atar", "Câpres", "Olives"],
+  africaine: ["Ras el hanout", "Cannelle", "Harissa", "Beurre de cacahuète", "Semoule"]
+};
+const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
+const JOURS_SEANCES = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4] }; // index des soirs de cuisine
+const FRIGO = [["courgette", "Courgettes"], ["carotte", "Carottes"], ["épinard", "Épinards"], ["poivron", "Poivrons"], ["brocoli", "Brocolis"],
+  ["chou-fleur", "Chou-fleur"], ["pomme", "Pommes de terre"], ["patate", "Patates douces"], ["tomate", "Tomates"], ["œuf", "Œufs"],
+  ["poulet", "Poulet"], ["pois chiche", "Pois chiches"], ["lentille", "Lentilles"], ["haricot", "Haricots"]];
+
+// Nutrition estimée (fictive) pour 100 g, hors riz : [kcal, protéines, lipides, glucides, fibres, portion en g]
+const NUTRI = {
+  courgette_poischiche: [95, 5, 3.5, 10, 4, 350], dal_lentilles: [120, 6, 5, 13, 3.5, 380], riz_saute: [150, 6, 4.5, 21, 1.5, 380],
+  ratatouille: [60, 1.5, 3.5, 6, 2.5, 350], plaque_poulet: [130, 10, 6, 9, 2.5, 420], minestrone: [55, 2.5, 1.5, 8, 2.5, 450],
+  chili_sin: [95, 6, 1.5, 13, 5, 400], boeuf_brocoli: [120, 13, 5, 5, 2, 350], tajine_legumes: [110, 4, 3, 17, 4, 450],
+  tortilla_esp: [140, 7, 8, 10, 1.5, 320], saumon_papillote: [120, 11, 7, 3, 2, 380], gratin_choufleur: [105, 6, 7, 5, 2, 350],
+  bowl_patate: [130, 5, 6, 15, 5, 420], pates_rotis: [150, 6, 4, 22, 3.5, 400], curry_vert: [110, 5, 8, 6, 2.5, 380],
+  soupe_potiron: [55, 1.2, 2.5, 7, 1.5, 400], fajitas: [160, 13, 6, 14, 2, 380], lentilles_carottes: [100, 7, 0.8, 15, 5, 380],
+  poisson_epinards: [80, 12, 2.5, 3, 2, 350], chakchouka: [85, 5.5, 5, 5, 1.8, 350], galettes_legumes: [140, 7, 7, 12, 2, 300],
+  poulet_basquaise: [115, 12, 5.5, 5, 1.5, 400], soba_legumes: [125, 5, 2.5, 21, 2.5, 380], haricots_kale: [90, 5.5, 2.5, 11, 5, 400]
+};
+const ASTUCES = {
+  courgette_poischiche: "Sale les courgettes seulement en fin de cuisson : le sel leur fait rendre leur eau, et elles bouillent au lieu de dorer.",
+  dal_lentilles: "Fais revenir les épices 30 secondes dans l'huile chaude avant d'ajouter le liquide : leurs arômes se dissolvent dans le gras.",
+  riz_saute: "Utilise du riz cuit la veille : sec et froid, il saute sans coller ni tourner en bouillie.",
+  ratatouille: "Cuis chaque légume séparément avant de tout réunir : chacun garde sa texture et son goût.",
+  plaque_poulet: "N'entasse pas les légumes sur la plaque : trop serrés, ils cuisent à la vapeur et ne dorent pas.",
+  minestrone: "Ajoute une croûte de parmesan pendant la cuisson : elle donne de la profondeur au bouillon.",
+  chili_sin: "Une pincée de sucre (ou un carré de chocolat noir) dans la sauce tomate corrige l'acidité et arrondit le goût.",
+  boeuf_brocoli: "Saisis la viande en petites quantités : trop à la fois, le wok refroidit et la viande bout au lieu de griller.",
+  tajine_legumes: "Coupe les légumes durs (carotte, courge) plus petits que les tendres (courgette) : tout finit de cuire en même temps.",
+  tortilla_esp: "Feu doux et couvercle : l'œuf prend sans brûler dessous.",
+  saumon_papillote: "Le saumon est cuit quand il se détache en lamelles et reste rosé au centre : 15 minutes suffisent.",
+  gratin_choufleur: "Égoutte puis sèche bien le chou-fleur : sinon son eau détrempe la béchamel.",
+  bowl_patate: "Sèche bien les pois chiches avant de les rôtir : c'est ce qui les rend croustillants.",
+  pates_rotis: "Garde un verre d'eau de cuisson des pâtes : son amidon lie la sauce et la rend onctueuse.",
+  curry_vert: "Fais revenir la pâte de curry dans un peu de crème de coco avant le reste : c'est là qu'elle libère ses arômes.",
+  soupe_potiron: "Un filet de citron ou de vinaigre au moment de servir réveille une soupe trop douce.",
+  fajitas: "Coupe le poulet dans le sens contraire des fibres : il reste tendre.",
+  lentilles_carottes: "Sale les lentilles en fin de cuisson : salées trop tôt, elles restent dures.",
+  poisson_epinards: "Ne touche pas le poisson pendant 3 minutes : quand la croûte est formée, il se décolle tout seul.",
+  chakchouka: "Une pincée de sucre dans la sauce tomate compense l'acidité des tomates en boîte.",
+  galettes_legumes: "Presse fort les légumes râpés dans un torchon : moins d'eau, ce sont des galettes qui tiennent et qui dorent.",
+  poulet_basquaise: "Fais bien dorer le poulet avant de mijoter : cette croûte donne le goût à toute la sauce.",
+  soba_legumes: "Rince les soba à l'eau froide après cuisson : l'amidon part et elles ne collent plus.",
+  haricots_kale: "Retire la tige dure du kale et masse les feuilles avec un peu de sel : elles deviennent tendres."
+};
+const EMOJI = {
+  courgette_poischiche: "🥒", dal_lentilles: "🍛", riz_saute: "🍚", ratatouille: "🍆", plaque_poulet: "🍗", minestrone: "🍲",
+  chili_sin: "🌶️", boeuf_brocoli: "🥦", tajine_legumes: "🎃", tortilla_esp: "🍳", saumon_papillote: "🐟", gratin_choufleur: "🧀",
+  bowl_patate: "🥗", pates_rotis: "🍝", curry_vert: "🥥", soupe_potiron: "🥣", fajitas: "🌮", lentilles_carottes: "🥕",
+  poisson_epinards: "🍋", chakchouka: "🍅", galettes_legumes: "🥞", poulet_basquaise: "🫑", soba_legumes: "🍜", haricots_kale: "🫘"
+};
+const EMOJI_OBJ = { energie: "⚡", ig: "📉", stress: "😌", inflammation: "🛡️", sommeil: "😴", force: "💪", budget: "💶", monde: "🌍" };
+
