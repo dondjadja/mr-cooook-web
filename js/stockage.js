@@ -19,7 +19,7 @@ function charger() {
 }
 let etat = charger();
 function sauver() { try { localStorage.setItem(CLE, JSON.stringify(etat)); } catch (e) { /* stockage indisponible : l'état reste en mémoire */ } }
-// Sauvegarde et restauration (fichier JSON choisi par Jeff ; contenu vérifié avant usage, affiché uniquement par textContent)
+// Sauvegarde et restauration (fichier JSON choisi par l’utilisateur ; contenu vérifié avant usage, affiché uniquement par textContent)
 function exporterEtat() { return JSON.stringify(etat, null, 2); }
 function importerEtat(texte) {
   const e = JSON.parse(texte);
