@@ -89,3 +89,86 @@ function construireIcs(lundi) {
   lignes.push("END:VCALENDAR");
   return { evts, texte: lignes.join("\r\n") };
 }
+
+// =====================================================================
+// ---------- V1 : logique du soir (interface convenue, CONTRAT.md v1) ----------
+// Seul module qui modifie le cap et la progression. `date` est un objet Date ; les jours sont des chaînes AAAA-MM-JJ.
+// Les fonctions qui modifient l'état le modifient en place, l'enregistrent et le renvoient.
+function jourIso(d) { const p = n => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
+function ajouterJours(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n, 12, 0, 0); }
+function lundiDe(date) { return ajouterJours(date, -((date.getDay() + 6) % 7)); }
+// Numéro de jour stable (indépendant de l'heure et du fuseau) pour les rotations
+function numeroJour(date) { return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 864e5); }
+
+function seanceDuJour(cap, date) {
+  if (!cap || !Array.isArray(cap.seances)) return null;
+  const j = jourIso(date);
+  return cap.seances.find(s => s.jour === j) || null;
+}
+function recettesPlacard() { return RECETTES_V1.filter(r => r.placard === true && r.temps_rapide <= 15); }
+// Choix du plan B, sans effet : rotation déterministe par la date sur les recettes placard
+function choisirPlanB(date) {
+  const liste = recettesPlacard();
+  if (!liste.length) return null;
+  return liste[((numeroJour(date) % liste.length) + liste.length) % liste.length];
+}
+// Plan B demandé par Jeff : compte un usage « plans_b »
+function planB(e, date) {
+  if (!INTERRUPTEURS.plan_b) return null;
+  const r = choisirPlanB(date);
+  if (r && e) compter("plans_b", e);
+  return r;
+}
+function versionParDefaut() { return INTERRUPTEURS.version_rapide ? "rapide" : "normale"; }
+function basculerVersion(version) { return version === "rapide" ? "normale" : "rapide"; }
+function dureeVersion(recette, version) { return version === "rapide" ? recette.temps_rapide : recette.temps_normal; }
+// Un seul plat pour ce soir : la séance du cap validé, sinon le plan B (version rapide par défaut)
+function recetteDuSoir(e, date) {
+  const version = versionParDefaut();
+  const cap = e && e.cap;
+  const seance = cap && cap.valide ? seanceDuJour(cap, date) : null;
+  let recette = seance ? recetteParId(seance.recette_id) : null, est_plan_b = false;
+  if (!recette && INTERRUPTEURS.plan_b) { recette = choisirPlanB(date); est_plan_b = !!recette; }
+  if (!recette) { // plan B coupé : prochaine séance du cap, sinon première recette de séance
+    const j = jourIso(date);
+    const suivante = cap && Array.isArray(cap.seances) ? cap.seances.filter(s => s.jour >= j).sort((a, b) => a.jour.localeCompare(b.jour))[0] : null;
+    recette = (suivante && recetteParId(suivante.recette_id)) || RECETTES_V1.find(r => !r.placard) || RECETTES_V1[0];
+  }
+  return { recette, version, duree_min: dureeVersion(recette, version), est_plan_b };
+}
+// « Pas ce soir » : la séance du jour glisse au prochain jour libre de la semaine (lundi → dimanche), sinon elle est retirée
+function pasCeSoir(e, date) {
+  if (!INTERRUPTEURS.pas_ce_soir || !e || !e.cap || !Array.isArray(e.cap.seances)) return e;
+  const seance = seanceDuJour(e.cap, date);
+  if (!seance) return e;
+  const dimanche = jourIso(ajouterJours(lundiDe(date), 6)), occupes = new Set(e.cap.seances.map(s => s.jour));
+  let libre = null;
+  for (let d = ajouterJours(date, 1); jourIso(d) <= dimanche; d = ajouterJours(d, 1)) {
+    if (!occupes.has(jourIso(d))) { libre = jourIso(d); break; }
+  }
+  if (libre) seance.jour = libre;
+  else e.cap.seances.splice(e.cap.seances.indexOf(seance), 1);
+  e.cap.seances.sort((a, b) => a.jour.localeCompare(b.jour));
+  sauver(e);
+  return e;
+}
+// Séance faite : progression de la recette et compteur d'usage
+function marquerFaite(e, recette_id, sans_recette) {
+  if (!e.progression) e.progression = {};
+  const p = e.progression[recette_id] || { faits: 0, dernier_sans_recette: false };
+  e.progression[recette_id] = { faits: p.faits + 1, dernier_sans_recette: !!sans_recette };
+  compter("seances_faites", e); // enregistre aussi l'état
+  return e;
+}
+// Cap d'amorçage (jusqu'à jalon_cap) : lundi, mercredi, vendredi, 3 premières recettes de séance
+function capDAmorcage(date) {
+  const lundi = lundiDe(date), ids = RECETTES_V1.filter(r => !r.placard).slice(0, 3).map(r => r.id);
+  return { semaine: jourIso(lundi), theme: "découverte", valide: true,
+    seances: ids.map((id, i) => ({ jour: jourIso(ajouterJours(lundi, 2 * i)), recette_id: id, repas_couverts: 2 })) };
+}
+// Au démarrage : pose le cap d'amorçage si aucun cap ou s'il date d'une semaine passée
+function assurerCap(e, date) {
+  const lundi = jourIso(lundiDe(date));
+  if (!e.cap || !e.cap.semaine || e.cap.semaine < lundi) { e.cap = capDAmorcage(date); sauver(e); }
+  return e;
+}

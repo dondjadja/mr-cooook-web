@@ -5,29 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Mr Cooook</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icones/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mr Cooook">
+<meta name="theme-color" content="#2f7a4f">
 <link rel="stylesheet" href="styles/jetons.css">
 <link rel="stylesheet" href="styles/composants.css">
+<link rel="stylesheet" href="styles/ecrans.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>Mr Cooook</h1>
-      <div class="sub" id="soustitre"></div>
-    </div>
-    <span class="tag-ex">V0 · recettes d'exemple</span>
-  </header>
-  <nav role="tablist" id="onglets"></nav>
-  <main id="vue"></main>
-</div>
-<dialog id="fiche"></dialog>
-<div id="cuisine" class="cuisine" hidden></div>
-<div class="toast" id="toast" hidden></div>
+<main id="vue" class="vue"></main>
+<nav id="barre" class="barre" aria-label="Navigation principale"></nav>
+<div class="toast" id="toast" role="status" hidden></div>
 
+<script src="js/interrupteurs.js"></script>
 <script src="js/donnees.js"></script>
+<script src="js/recettes.js"></script>
 <script src="js/stockage.js"></script>
 <script src="js/mesure_usage.js"></script>
+<script src="js/profil.js"></script>
 <script src="js/logique.js"></script>
+<script src="js/ecrans/ce_soir.js"></script>
+<script src="js/ecrans/pas_a_pas.js"></script>
+<script src="js/ecrans/progres.js"></script>
+<script src="js/ecrans/profil.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
