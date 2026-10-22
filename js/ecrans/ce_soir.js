@@ -1,24 +1,51 @@
 "use strict";
-// ---------- Écran « Ce soir » (disposition de DESIGN.md, de haut en bas) ----------
-// jour · illustration · drapeau + nom · 1 ligne (durée + bénéfice) · le geste · lien « Nutrition »
-// · bouton principal · « Plan B » / « Rapide » côte à côte · lien « Pas ce soir » · (barre du bas dans index.html)
+// ---------- Écran « Ce soir » (disposition de DESIGN.md) ----------
+// Photo plein écran derrière le contenu ; jour en haut ; en bas, sur un fondu : drapeau + nom, durée, 1 bénéfice,
+// le geste, lien « Nutrition », bouton principal « Lancer la recette » (toujours), bascules « Rapide » et « Plan B »,
+// lien « Pas ce soir » (seulement si le plat affiché est la séance de ce soir).
 
-// Ce que l'écran affiche ce soir : un seul plat, sa version et s'il s'agit du plan B.
+// Jour ISO local (AAAA-MM-JJ) d'une date, pour lire le cap sans dupliquer la logique.
+const isoEcran = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const jourDeIso = iso => { const [a, m, j] = iso.split("-").map(Number); return JOURS_SEMAINE[new Date(a, m - 1, j).getDay()].toLowerCase(); };
+
+// Séance de ce soir (cap validé) et prochaine séance prévue après aujourd'hui (lecture seule de l'état).
+function seancesAffichables(etat, date) {
+  const cap = etat && etat.cap;
+  if (!cap || !cap.valide || !Array.isArray(cap.seances)) return { duSoir: null, prochaine: null };
+  const j = isoEcran(date);
+  const duSoir = existe("seanceDuJour") ? seanceDuJour(cap, date) : cap.seances.find(s => s.jour === j) || null;
+  const prochaine = cap.seances.filter(s => s.jour > j).sort((a, b) => a.jour.localeCompare(b.jour))[0] || null;
+  return { duSoir, prochaine };
+}
+
+// Ce que l'écran affiche : un seul plat. Ordre : bascule Plan B active → planB() ; séance de ce soir ;
+// sinon prochaine séance prévue (jour sans séance, decisions.md) ; sinon ce que donne recetteDuSoir.
 function soirAffiche(etat, date) {
   const soir = recetteDuSoir(etat, date);
-  // planB() compte un usage : jamais appelé ici, seulement au toucher du bouton (basculerPlanB).
-  const choisie = ECRAN.plan_b_id && existe("recetteParId") ? recetteParId(ECRAN.plan_b_id) : null;
-  const planBChoisi = !!choisie && !soir.est_plan_b && actif("plan_b");
-  const recette = planBChoisi ? choisie : soir.recette;
+  const { duSoir, prochaine } = seancesAffichables(etat, date);
+  const parId = id => (id && existe("recetteParId") ? recetteParId(id) : null);
+  const planBActif = !!ECRAN.plan_b_id && actif("plan_b") && actif("plan_b_bascule");
+  let recette = null, quand = null, estSeanceDuSoir = false;
+  if (planBActif) { recette = parId(ECRAN.plan_b_id); quand = "Plan B du placard"; }
+  if (!recette && duSoir && (recette = parId(duSoir.recette_id))) estSeanceDuSoir = true;
+  if (!recette && prochaine && (recette = parId(prochaine.recette_id))) quand = jourDeIso(prochaine.jour) + " : prochaine séance";
+  if (!recette) { recette = soir.recette; if (soir.est_plan_b) quand = "Plan B du placard"; }
   if (ECRAN.version == null) ECRAN.version = soir.version || "rapide";
   const version = actif("version_rapide") ? ECRAN.version : "normale";
   const duree = version === "rapide" ? recette.temps_rapide : recette.temps_normal;
-  return { soir, recette, version, duree, planBChoisi, estPlanB: soir.est_plan_b || planBChoisi };
+  return { recette, version, duree, quand, planBActif: planBActif && !!parId(ECRAN.plan_b_id), estSeanceDuSoir };
 }
 
-function lancer(recette) {
+// « Lancer la recette » : seul endroit qui compte lancements (et plans_b si la bascule Plan B est active),
+// puis ouvre le mode cuisine (afficherCuisine, lot correction_cuisine) ; à défaut, l'ancien pas à pas.
+function lancer(recette, version) {
   compterSiPossible("lancements");
+  if (ECRAN.plan_b_id && ECRAN.plan_b_id === recette.id) compterSiPossible("plans_b");
   ECRAN.recette_id = recette.id; ECRAN.etape = 0;
+  if (typeof afficherCuisine === "function") {
+    try { afficherCuisine(recette, version || ECRAN.version || "rapide"); return; }
+    catch (err) { console.warn("afficherCuisine : " + err.message); }
+  }
   aller("pas_a_pas");
 }
 
@@ -29,68 +56,67 @@ function vueCeSoir() {
     return h("section", { class: "ecran" }, jour,
       h("p", { class: "info" }, "La logique du soir n'est pas encore branchée : rien à proposer pour l'instant."));
   }
-  const etat = lireEtatV1();
-  const s = soirAffiche(etat, date), r = s.recette;
-  const seance = existe("seanceDuJour") ? seanceDuJour(etat.cap, date) : (s.soir.est_plan_b ? null : true);
+  const s = soirAffiche(lireEtatV1(), date), r = s.recette;
   const benef = (r.benefices || [])[0];
 
-  const info = s.soir.est_plan_b
-    ? h("p", { class: "info" }, "Pas de séance prévue ce soir : plan B du placard.")
-    : s.planBChoisi ? h("p", { class: "info" }, "Plan B : 15 min, placard seulement.") : null;
+  const principal = h("button", { class: "btn principal", onclick: () => lancer(r, s.version) }, "Lancer la recette");
 
-  const principal = h("button", { class: "btn principal", onclick: () => lancer(r) },
-    s.estPlanB ? "Lancer le plan B" : "Lancer la recette");
-
-  const boutons = [];
-  if (actif("plan_b") && existe("planB") && !s.soir.est_plan_b) {
-    boutons.push(h("button", { class: "btn second", "aria-pressed": String(s.planBChoisi),
-      onclick: () => basculerPlanB(date) }, "Plan B"));
-  }
+  // Deux bascules de même forme : « Rapide » (actif par défaut) et « Plan B » (inactif par défaut).
+  const bascule = (libelle, actifNow, onclick) => h("button", { class: "btn second bascule", "aria-pressed": String(actifNow), onclick },
+    libelle + (actifNow ? " ✓" : ""));
+  const bascules = [];
   if (actif("version_rapide")) {
-    boutons.push(h("button", { class: "btn second", "aria-pressed": String(s.version === "rapide"),
-      onclick: () => { ECRAN.version = existe("basculerVersion") ? basculerVersion(s.version) : (s.version === "rapide" ? "normale" : "rapide"); rendre(); } },
-      s.version === "rapide" ? "Rapide ✓" : "Rapide"));
+    bascules.push(bascule("Rapide", s.version === "rapide", () => {
+      ECRAN.version = existe("basculerVersion") ? basculerVersion(s.version) : (s.version === "rapide" ? "normale" : "rapide"); rendre();
+    }));
+  }
+  if (actif("plan_b") && actif("plan_b_bascule") && existe("planB")) {
+    bascules.push(bascule("Plan B", s.planBActif, () => basculerPlanB(date)));
   }
 
-  const pasCeSoirLien = actif("pas_ce_soir") && existe("pasCeSoir") && seance && !s.soir.est_plan_b
+  const pasCeSoirLien = actif("pas_ce_soir") && existe("pasCeSoir") && s.estSeanceDuSoir
     ? h("button", { class: "lien-texte", onclick: () => decaler(date) }, "Pas ce soir")
     : null;
 
-  return h("section", { class: "ecran" },
+  return h("section", { class: "ecran ce-soir" },
+    fondPhoto(r),
     jour,
-    info,
-    illustration(r),
-    h("h2", { class: "nom-plat" }, drapeau(r.pays) + " " + r.nom),
-    h("p", { class: "ligne" }, "⏱ " + s.duree + " min" + (s.version === "rapide" ? " (rapide)" : "") +
-      (benef ? " · " + texteBenefice(benef) : "")),
-    r.gestes && r.gestes[0] ? h("p", { class: "geste" }, h("strong", {}, "Le geste : "), r.gestes[0]) : null,
-    h("button", { class: "lien-texte gauche", onclick: () => { ECRAN.recette_id = r.id; aller("fiche"); } }, "Nutrition"),
-    principal,
-    boutons.length ? h("div", { class: "duo" + (boutons.length === 1 ? " seul" : "") }, boutons) : null,
-    pasCeSoirLien);
+    h("div", { class: "bas" },
+      s.quand ? h("p", { class: "quand" }, s.quand) : null,
+      h("h2", { class: "nom-plat" }, drapeau(r.pays) + " " + r.nom),
+      h("p", { class: "ligne" }, "⏱ " + s.duree + " min" + (s.version === "rapide" ? " (rapide)" : "")),
+      benef ? h("p", { class: "ligne" }, texteBenefice(benef)) : null,
+      r.gestes && r.gestes[0] ? h("p", { class: "geste" }, h("strong", {}, "Le geste : "), r.gestes[0]) : null,
+      h("button", { class: "lien-texte gauche", onclick: () => { ECRAN.recette_id = r.id; aller("fiche"); } }, "Nutrition"),
+      principal,
+      bascules.length ? h("div", { class: "bascules" + (bascules.length === 1 ? " seule" : "") }, bascules) : null,
+      pasCeSoirLien));
 }
 
-// « Plan B » : bascule ; planB() (qui compte plans_b) n'est appelé qu'à l'activation par Jeff.
+// Photo plein écran derrière le contenu ; si l'illustration manque, le fond reste uni.
+function fondPhoto(r) {
+  const img = h("img", { src: "illustrations/" + r.id + ".svg", alt: "", decoding: "async" });
+  img.addEventListener("error", () => { img.hidden = true; });
+  return h("div", { class: "fond-photo", role: "img", "aria-label": "Illustration : " + r.nom }, img);
+}
+
+// Bascule « Plan B » : activée → le plat affiché devient planB(etat, date) ; désactivée → retour à la séance.
 function basculerPlanB(date) {
   if (ECRAN.plan_b_id) ECRAN.plan_b_id = null;
   else { const r = planB(lireEtatV1(), date); ECRAN.plan_b_id = r ? r.id : null; }
   rendre();
 }
 
-// « Pas ce soir » : la séance glisse au prochain jour libre (logique), en 1 appui.
+// « Pas ce soir » : la séance glisse au prochain jour libre (logique), en 1 appui ; message « Séance décalée à … ».
 function decaler(date) {
   const avant = lireEtatV1();
-  const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   // Copie des valeurs avant l'appel : pasCeSoir modifie la séance en place dans l'état unique.
-  const trouvee = ((avant.cap && avant.cap.seances) || []).find(x => x.jour === iso(date));
+  const trouvee = ((avant.cap && avant.cap.seances) || []).find(x => x.jour === isoEcran(date));
   const duJour = trouvee ? { jour: trouvee.jour, recette_id: trouvee.recette_id } : null;
   const apres = agir(e => pasCeSoir(e, date));
   const placee = duJour && ((apres.cap && apres.cap.seances) || []).find(x => x.recette_id === duJour.recette_id && x.jour !== duJour.jour);
   ECRAN.plan_b_id = null;
-  if (placee) {
-    const [a, m, j] = placee.jour.split("-").map(Number);
-    toast("Séance décalée à " + JOURS_SEMAINE[new Date(a, m - 1, j).getDay()].toLowerCase());
-  } else toast("Séance retirée de la semaine");
+  toast(placee ? "Séance décalée à " + jourDeIso(placee.jour) : "Séance retirée de la semaine");
   rendre();
 }
 

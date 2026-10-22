@@ -1,0 +1,14 @@
+/* Mode cuisine (« Lancer la recette », DESIGN.md) : jetons existants seulement, aucune couleur nouvelle. */
+/* Présentation générale : chaque ingrédient sur une ligne, la part de Jeff à droite en discret */
+.ingredient-cuisine { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
+.part-jeff { color: var(--muted); font-size: 14px; }
+/* Bandeau du minuteur : collé en haut de l'écran pendant les étapes, décompte lisible de loin */
+.minuteur-bandeau { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--accent-soft); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font: 600 16px var(--f-body); }
+.minuteur-bandeau .decompte { font-size: 24px; font-weight: 700; }
+.minuteur-bandeau.fini { background: var(--warn-soft); border-color: var(--warn); }
+.minuteur-bandeau .btn.small { min-height: 44px; flex: none; }
+/* Étapes du mode cuisine : texte grand, boutons empilés */
+.mode-cuisine .etape { min-height: 4em; }
+/* Bouton principal toujours visible au-dessus de la barre du bas (la liste d'ingrédients peut dépasser l'écran) */
+.mode-cuisine > .btn.principal { position: sticky; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 5; }

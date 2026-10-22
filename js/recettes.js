@@ -27,11 +27,11 @@ const RECETTES_V1 = [
       { nom: "huile d'olive", quantite: 30, unite: "ml", rayon: "épicerie" }
     ],
     etapes: [
-      "Lance le riz (10 à 12 min).",
-      "Mélange le bœuf avec la sauce soja et la fécule, laisse 5 min.",
-      "Coupe les brocolis en petites fleurettes et blanchis-les 2 min.",
-      "Saisis le bœuf en 3 fois, wok très chaud, 2 min par fournée ; réserve.",
-      "Remets tout dans le wok avec ail et gingembre râpés et un fond d'eau, 2 min. Sers sur le riz."
+      "Lance le riz — 12 min",
+      "Mélange le bœuf avec la sauce soja et la fécule, laisse reposer",
+      "Coupe les brocolis en petites fleurettes et blanchis-les",
+      "Saisis le bœuf en 3 fois, wok très chaud, 2 min par fournée ; réserve",
+      "Remets tout dans le wok avec ail et gingembre râpés et un fond d'eau. Sers sur le riz"
     ],
     gestes: [
       "Saisis la viande en petites quantités : trop à la fois, le wok refroidit et la viande bout au lieu de griller.",
@@ -73,8 +73,8 @@ const RECETTES_V1 = [
     etapes: [
       "Coupe poulet, poivrons et oignons en lanières.",
       "Mélange le poulet avec cumin, paprika, sel et le jus d'un citron vert.",
-      "Saisis le poulet 5 min à feu vif, réserve.",
-      "Fais sauter poivrons et oignons 6 min, remets le poulet.",
+      "Saisis le poulet à feu vif, réserve — 5 min",
+      "Fais sauter poivrons et oignons, remets le poulet — 6 min",
       "Chauffe les tortillas 20 s à sec dans la poêle ; sers avec le fromage blanc citronné."
     ],
     gestes: [
@@ -114,10 +114,10 @@ const RECETTES_V1 = [
       { nom: "huile d'olive", quantite: 40, unite: "ml", rayon: "épicerie" }
     ],
     etapes: [
-      "Lance le riz.",
-      "Fais tomber épinards et ail 3 min dans un filet d'huile, réserve.",
-      "Saisis les tomates cerises 3 min.",
-      "Cuis le cabillaud 3 min par face sans le bouger.",
+      "Lance le riz — 12 min",
+      "Fais tomber épinards et ail dans un filet d'huile, réserve",
+      "Saisis les tomates cerises",
+      "Cuis le cabillaud 3 min par face sans le bouger",
       "Sers sur le riz avec citron et un filet d'huile d'olive crue."
     ],
     gestes: [
@@ -156,10 +156,10 @@ const RECETTES_V1 = [
       { nom: "sauce soja", quantite: 50, unite: "ml", rayon: "épicerie" }
     ],
     etapes: [
-      "Lance le riz.",
-      "Cuis les haricots verts 6 min à l'eau bouillante salée.",
-      "Pose le saumon côté peau dans la poêle chaude, 5 min, puis 2 min de l'autre côté.",
-      "Fais sauter les haricots 2 min avec gingembre râpé et sauce soja.",
+      "Lance le riz — 12 min",
+      "Cuis les haricots verts à l'eau bouillante salée",
+      "Pose le saumon côté peau dans la poêle chaude, puis de l'autre côté",
+      "Fais sauter les haricots avec gingembre râpé et sauce soja",
       "Sers avec le citron. Version normale : en papillote au four, 15 min à 200 °C."
     ],
     gestes: [
@@ -199,10 +199,10 @@ const RECETTES_V1 = [
       { nom: "huile d'olive", quantite: 20, unite: "ml", rayon: "épicerie" }
     ],
     etapes: [
-      "Lance le riz.",
-      "Fais revenir oignons et poivrons en dés 4 min.",
-      "Ajoute le bœuf, émiette-le et laisse-le dorer 5 min sans trop remuer.",
-      "Ajoute cumin et paprika 30 s, puis tomates et haricots égouttés ; 8 min à frémissement.",
+      "Lance le riz — 12 min",
+      "Fais revenir oignons et poivrons en dés",
+      "Ajoute le bœuf, émiette-le et laisse-le dorer sans trop remuer",
+      "Ajoute cumin et paprika 30 s, puis tomates et haricots égouttés ; laisse frémir",
       "Goûte, sale, sers sur le riz. Version normale : mijote 30 min."
     ],
     gestes: [
@@ -243,10 +243,10 @@ const RECETTES_V1 = [
       { nom: "huile d'olive", quantite: 30, unite: "ml", rayon: "épicerie" }
     ],
     etapes: [
-      "Cuis les soba 5 min, rince-les à l'eau froide.",
-      "Saisis le poulet en lanières 5 min, réserve.",
-      "Fais sauter carottes en julienne et champignons 4 min.",
-      "Ajoute le chou émincé 2 min.",
+      "Cuis les soba, rince-les à l'eau froide — 5 min",
+      "Saisis le poulet en lanières, réserve — 5 min",
+      "Fais sauter carottes en julienne et champignons — 4 min",
+      "Ajoute le chou émincé — 2 min",
       "Remets poulet et nouilles avec la sauce soja, 1 min ; parsème de sésame."
     ],
     gestes: [
@@ -288,10 +288,10 @@ const RECETTES_V1 = [
       { nom: "épices de base", quantite: 10, unite: "g", rayon: "épicerie" }
     ],
     etapes: [
-      "Lance le riz (10 à 12 min), puis égoutte-le et étale-le pour qu'il sèche.",
+      "Lance le riz, puis égoutte-le et étale-le pour qu'il sèche — 12 min",
       "Pendant ce temps, brouille les œufs battus dans la poêle huilée, réserve.",
-      "Fais dorer oignons et ail émincés 3 min, ajoute les pois chiches égouttés 2 min.",
-      "Ajoute le riz à feu vif 3 min, puis les œufs ; sale, poivre, une pincée de cumin."
+      "Fais dorer oignons et ail émincés, ajoute les pois chiches égouttés",
+      "Ajoute le riz à feu vif, puis les œufs ; sale, poivre, une pincée de cumin — 3 min"
     ],
     gestes: [
       "Étale le riz sur une assiette pendant 2 min : plus sec, il saute sans coller.",
@@ -327,9 +327,9 @@ const RECETTES_V1 = [
       { nom: "épices de base", quantite: 10, unite: "g", rayon: "épicerie" }
     ],
     etapes: [
-      "Cuis les pâtes ; ajoute les œufs dans la même eau 6 min avant la fin, puis passe-les à l'eau froide.",
-      "Pendant ce temps, chauffe l'huile à feu doux avec l'ail en lamelles et une pincée de piment, 3 min.",
-      "Ajoute les pois chiches égouttés 2 min.",
+      "Cuis les pâtes ; ajoute les œufs dans la même eau puis passe-les à l'eau froide — 10 min",
+      "Pendant ce temps, chauffe l'huile à feu doux avec l'ail en lamelles et une pincée de piment",
+      "Ajoute les pois chiches égouttés — 2 min",
       "Mélange avec les pâtes et une louche d'eau de cuisson ; sers avec l'œuf mollet coupé en deux."
     ],
     gestes: [
@@ -368,9 +368,9 @@ const RECETTES_V1 = [
       { nom: "épices de base", quantite: 15, unite: "g", rayon: "épicerie" }
     ],
     etapes: [
-      "Lance le riz et, à part, les œufs 9 min à l'eau bouillante.",
-      "Fais revenir oignons et ail 2 min, ajoute cumin, curcuma et curry 30 s.",
-      "Ajoute lentilles rincées, tomates et 1,2 L d'eau ; 12 min à frémissement en remuant.",
+      "Lance le riz et, à part, les œufs à l'eau bouillante",
+      "Fais revenir oignons et ail, ajoute cumin, curcuma et curry",
+      "Ajoute lentilles rincées, tomates et 1,2 L d'eau ; laisse frémir en remuant — 12 min",
       "Sale, sers sur le riz avec les œufs écalés coupés en deux."
     ],
     gestes: [

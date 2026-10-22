@@ -1,0 +1,4 @@
+/* Écran « Profil » : tailles tactiles des champs (jetons existants seulement, aucune couleur nouvelle). */
+.profil-champ { width: 100%; min-height: 44px; box-sizing: border-box; font-size: 16px; }
+.profil-ligne { min-height: 44px; align-items: center; box-sizing: border-box; }
+.profil-case { width: 24px; height: 24px; margin: 0; }

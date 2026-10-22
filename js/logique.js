@@ -112,12 +112,15 @@ function choisirPlanB(date) {
   if (!liste.length) return null;
   return liste[((numeroJour(date) % liste.length) + liste.length) % liste.length];
 }
-// Plan B demandé par Jeff : compte un usage « plans_b »
+// Plan B : sans aucun effet (ne compte rien, n'écrit rien) ; plans_b est compté par l'écran au lancement
 function planB(e, date) {
   if (!INTERRUPTEURS.plan_b) return null;
-  const r = choisirPlanB(date);
-  if (r && e) compter("plans_b", e);
-  return r;
+  return choisirPlanB(date);
+}
+// Durée d'une étape écrite à la fin du texte : « … — 10 min » → 10 ; sinon null
+function dureeEtape(texte) {
+  const m = /— (\d+) min$/.exec(String(texte == null ? "" : texte).trim());
+  return m ? Number(m[1]) : null;
 }
 function versionParDefaut() { return INTERRUPTEURS.version_rapide ? "rapide" : "normale"; }
 function basculerVersion(version) { return version === "rapide" ? "normale" : "rapide"; }
