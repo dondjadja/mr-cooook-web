@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Veille des prix Mr Cooook — étape 1 : liste unifiée et correspondances.
+"""Veille des prix Mr Cooook : liste unifiée, correspondances, relevés et comparatif.
 
 Réunit trois sources de besoins (recettes Mr Cooook, liste permanente, liste de courses
 exportée) en une liste d'ingrédients, et relie chaque ingrédient à des produits précis
 par enseigne (table de correspondance). Tout est stocké dans une base SQLite locale.
-Bibliothèque standard seulement : aucun accès réseau à cette étape.
+Les commandes importer, liste et manquants n'utilisent que la bibliothèque standard ;
+profil, calibrer et releve ont besoin de Playwright (voir README).
 """
 import argparse
 import csv
@@ -20,6 +21,7 @@ RECETTES_DEFAUT = RACINE / "js" / "recettes.js"
 PERMANENTE_DEFAUT = ICI / "donnees" / "liste_permanente.csv"
 CORRESPONDANCES_DEFAUT = ICI / "donnees" / "correspondances.csv"
 BASE_DEFAUT = ICI / "veille.sqlite"
+CONFIG_ENSEIGNES = ICI / "donnees" / "enseignes.json"
 
 # grandfrais et marche : sans prix en ligne, gardés pour des relevés manuels plus tard
 ENSEIGNES = ["auchan", "carrefour", "leclerc", "intermarche", "joybuy", "amazon", "grandfrais", "marche"]
@@ -127,6 +129,9 @@ def ouvrir(chemin):
     con = sqlite3.connect(str(chemin))
     con.execute("PRAGMA foreign_keys = ON")
     con.executescript(SCHEMA)
+    # base créée à l'étape 1 : colonne ajoutée à l'étape 2
+    if "ean" not in [c[1] for c in con.execute("PRAGMA table_info(produits)")]:
+        con.execute("ALTER TABLE produits ADD COLUMN ean TEXT")
     return con
 
 
@@ -222,7 +227,7 @@ def afficher_tableau(lignes, entetes):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description="Veille des prix Mr Cooook (étape 1 : liste et correspondances)")
+    p = argparse.ArgumentParser(description="Veille des prix Mr Cooook")
     p.add_argument("--base", default=str(BASE_DEFAUT), help="fichier SQLite (défaut : %(default)s)")
     sp = p.add_subparsers(dest="commande", required=True)
     imp = sp.add_parser("importer", help="lit les sources et met la base à jour")
@@ -232,9 +237,47 @@ def main(argv=None):
     imp.add_argument("--courses", help="liste de courses exportée (.txt ou .md), optionnelle")
     sp.add_parser("liste", help="liste unifiée des ingrédients et enseignes reliées")
     sp.add_parser("manquants", help="ingrédients encore reliés à aucun produit")
+    nav = argparse.ArgumentParser(add_help=False)
+    nav.add_argument("--config", default=str(CONFIG_ENSEIGNES))
+    nav.add_argument("--profil", default=str(ICI / "profil-navigateur"), help="dossier du profil navigateur")
+    nav.add_argument("--chrome", action="store_true", help="utiliser Google Chrome installé plutôt que Chromium")
+    nav.add_argument("--navigateur", help="chemin d'un exécutable Chromium précis")
+    sp.add_parser("profil", parents=[nav], help="ouvre les sites pour choisir tes drives (une fois)")
+    cal = sp.add_parser("calibrer", parents=[nav], help="montre ce qu'une page produit expose comme prix")
+    cal.add_argument("url")
+    rel = sp.add_parser("releve", parents=[nav], help="relève les prix de tous les produits actifs")
+    rel.add_argument("--invisible", action="store_true", help="navigateur caché (plus souvent bloqué)")
+    rel.add_argument("--enseigne", choices=ENSEIGNES)
+    rel.add_argument("--max", type=int, help="nombre maximum de pages (pour un essai)")
+    rap = sp.add_parser("rapport", parents=[nav], help="écrit le comparatif HTML")
+    rap.add_argument("--sortie", default=str(ICI / "rapport.html"))
     a = p.parse_args(argv)
 
     con = ouvrir(a.base)
+    if a.commande in ("profil", "calibrer", "releve"):
+        try:
+            import releve
+        except ImportError:
+            print("Playwright manque : pip install playwright puis playwright install chromium", file=sys.stderr)
+            return 2
+        config = releve.lire_config(a.config)
+        opts = dict(profil=a.profil, chrome=a.chrome, executable=a.navigateur)
+        if a.commande == "profil":
+            releve.ouvrir_profil(config, **opts)
+        elif a.commande == "calibrer":
+            releve.calibrer(a.url, **opts)
+        else:
+            bilan = releve.lancer(con, config, visible=not a.invisible, enseigne=a.enseigne, maximum=a.max, **opts)
+            for ens, compte in sorted(bilan.items()):
+                print("%-11s %s" % (ens, ", ".join("%s %d" % kv for kv in sorted(compte.items()))))
+        return 0
+    if a.commande == "rapport":
+        import json
+        import rapport
+        config = json.loads(Path(a.config).read_text(encoding="utf-8"))
+        Path(a.sortie).write_text(rapport.generer_html(rapport.lignes_rapport(con), config), encoding="utf-8")
+        print("Rapport écrit : %s" % a.sortie)
+        return 0
     if a.commande == "importer":
         alertes = importer(con, a.recettes, a.permanente, a.correspondances, a.courses)
         n_ing = con.execute("SELECT COUNT(*) FROM ingredients").fetchone()[0]

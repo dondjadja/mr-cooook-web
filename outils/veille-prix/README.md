@@ -1,9 +1,9 @@
 # Veille des prix (outil perso, hors appli)
 
 Outil local, séparé de l'appli Mr Cooook : il ne modifie rien dans `js/` et ne fait que **lire** `js/recettes.js`.
-Python 3 + bibliothèque standard, aucun accès réseau à cette étape.
+Python 3. Étape 1 : bibliothèque standard seule, sans réseau. Étape 2 : Playwright, sur ta machine.
 
-## Étape 1 (ici) : liste unifiée et correspondances
+## Étape 1 : liste unifiée et correspondances
 
 ```
 SOURCES                                   RÉFÉRENTIEL (veille.sqlite)
@@ -49,7 +49,41 @@ python3 -m unittest discover -s tests                 # tests
 `--courses` accepte un texte simple ou le Markdown à cases exporté par l'ancien écran Courses (`- [ ] ×2 riz`).
 L'écran Courses de la V1 n'existe pas encore : en attendant, l'outil lit tous les ingrédients des recettes.
 
-## Étapes suivantes
+## Étape 2 : relevés et comparatif (sur ta machine)
 
-2. Relevés automatiques (Playwright, sur ta machine) des drives et de Joybuy, comparatif de panier livraison comprise, rapport HTML.
-3. Alertes ntfy (prix cible, baisse, prix barré) ; Amazon via camelcamelcamel ou Keepa plutôt qu'un relevé direct.
+Les relevés passent par un vrai navigateur (Playwright) : à lancer **chez toi**, pas depuis un serveur
+(les sites bloquent les adresses de serveurs). Installation, une fois :
+
+```bash
+cd outils/veille-prix
+python3 -m pip install playwright
+python3 -m playwright install chromium      # ou utilise ton Chrome : ajoute --chrome aux commandes
+```
+
+| Commande | Rôle |
+|---|---|
+| `python3 veille_prix.py profil` | Ouvre chaque site : accepte les cookies et choisis ton drive (Auchan Pessac, Carrefour…). Une fois, puis quand un site t'a « oublié ». |
+| `python3 veille_prix.py importer` | Relit tes CSV (à refaire après chaque modification). |
+| `python3 veille_prix.py releve --max 3` | Premier essai sur 3 pages. Sans `--max` : tous les produits. |
+| `python3 veille_prix.py rapport` | Écrit `rapport.html` : panier le moins cher livraison comprise, tableau par ingrédient. |
+| `python3 veille_prix.py calibrer URL` | Quand un site donne « prix introuvable » : liste ce qui ressemble à un prix sur la page. Envoie le résultat à Claude, qui remplira `selecteur_prix`. |
+
+```
+releve ─▶ pour chaque produit (enseignes alternées, 4 à 12 s entre deux pages)
+          1. données structurées schema.org (JSON-LD)   ─┐
+          2. balises meta de prix                         ├─▶ releves : ok / bloque / introuvable / erreur
+          3. selecteur_prix de l'enseigne (enseignes.json) ┘
+rapport ─▶ dernier prix valable par produit, prix au kilo/litre/pièce, évolution,
+           panier le moins cher : enseigne la moins chère à l'unité, sauf si ses frais
+           de livraison coûtent plus que l'écart (enseignes.json : frais, seuil_gratuite)
+```
+
+- `donnees/enseignes.json` : page d'accueil, frais de livraison ou de retrait, seuil de gratuité, sélecteur de prix. Amazon est exclu des relevés (`"releve": false`) : suis-le avec camelcamelcamel ou Keepa.
+- Le navigateur reste **visible** pendant le relevé : les sites bloquent plus souvent un navigateur caché (`--invisible`).
+- Statut `bloque` : écran anti-robot. Relance plus tard, ou passe par `profil` pour résoudre le captcha une fois à la main.
+- Fréquence prévue : 2 fois par semaine (mardi et vendredi soir). Lance-le à la main tant que le calibrage n'est pas fini ; automatise ensuite (cron ou Automator), ordinateur allumé et session ouverte.
+- Tests : `python3 -m unittest discover -s tests` (le test du navigateur utilise des pages locales, jamais les vrais sites).
+
+## Étape suivante
+
+3. Alertes ntfy (prix cible, baisse, prix barré, promo « le 2e à -X % ») et ordre de passage selon fréquence et priorité.
