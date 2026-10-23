@@ -62,9 +62,9 @@ python3 -m playwright install chromium      # ou utilise ton Chrome : ajoute --c
 
 | Commande | Rôle |
 |---|---|
-| `python3 veille_prix.py profil` | Ouvre chaque site : accepte les cookies et choisis ton drive (Auchan Pessac, Carrefour…). Une fois, puis quand un site t'a « oublié ». |
+| `python3 veille_prix.py profil` | Ouvre une page produit de chaque site : accepte les cookies, choisis ton drive (Auchan Pessac, Carrefour…), résous les « je ne suis pas un robot ». Une fois, puis quand un site t'a « oublié ». |
 | `python3 veille_prix.py importer` | Relit tes CSV (à refaire après chaque modification). |
-| `python3 veille_prix.py releve --max 3` | Premier essai sur 3 pages. Sans `--max` : tous les produits. |
+| `python3 veille_prix.py releve --max 3` | Premier essai sur 3 pages. Sans `--max` : tous les produits. `--manuel` : s'arrête sur chaque écran anti-robot pour que tu le résolves. |
 | `python3 veille_prix.py rapport` | Écrit `rapport.html` : panier le moins cher livraison comprise, tableau par ingrédient. |
 | `python3 veille_prix.py calibrer URL` | Quand un site donne « prix introuvable » : liste ce qui ressemble à un prix sur la page. Envoie le résultat à Claude, qui remplira `selecteur_prix`. |
 

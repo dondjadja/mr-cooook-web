@@ -49,12 +49,19 @@ def lire_config(chemin=CONFIG_DEFAUT):
 
 
 def _contexte(p, profil, visible, chrome, executable):
-    options = dict(headless=not visible, locale="fr-FR", viewport={"width": 1280, "height": 900})
+    # Sans ces réglages, le navigateur s'annonce comme « piloté par un programme » et les
+    # anti-robots le bloquent d'office. Il reste un navigateur ordinaire, à ton nom, à ton rythme.
+    options = dict(headless=not visible, locale="fr-FR", timezone_id="Europe/Paris",
+                   viewport={"width": 1280, "height": 900},
+                   args=["--disable-blink-features=AutomationControlled"],
+                   ignore_default_args=["--enable-automation"])
     if chrome:
         options["channel"] = "chrome"
     elif executable:
         options["executable_path"] = executable
-    return p.chromium.launch_persistent_context(str(profil), **options)
+    ctx = p.chromium.launch_persistent_context(str(profil), **options)
+    ctx.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    return ctx
 
 
 def ordre_de_passage(produits, graine=None):
@@ -94,8 +101,9 @@ def relever_page(page, url, selecteur=None):
 
 
 def lancer(con, config, profil=PROFIL_DEFAUT, visible=True, chrome=False, executable=None,
-           enseigne=None, maximum=None, pause=(4, 12), ecrire=print):
-    """Relève les produits actifs et enregistre un relevé par produit. Rend {enseigne: {statut: n}}."""
+           enseigne=None, maximum=None, pause=(4, 12), ecrire=print, manuel=False, attendre=input):
+    """Relève les produits actifs et enregistre un relevé par produit. Rend {enseigne: {statut: n}}.
+    En mode manuel, une page anti-robot attend que tu la résolves dans la fenêtre, puis est relue une fois."""
     from playwright.sync_api import sync_playwright
 
     requete = "SELECT id, enseigne, url, libelle FROM produits WHERE actif = 1"
@@ -114,8 +122,12 @@ def lancer(con, config, profil=PROFIL_DEFAUT, visible=True, chrome=False, execut
         ctx = _contexte(p, profil, visible, chrome, executable)
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         for i, (pid, ens, url, libelle) in enumerate(ordre, start=1):
+            selecteur = config.get(ens, {}).get("selecteur_prix") or None
             try:
-                prix, barre, statut, origine, ean = relever_page(page, url, config.get(ens, {}).get("selecteur_prix") or None)
+                prix, barre, statut, origine, ean = relever_page(page, url, selecteur)
+                if statut == "bloque" and manuel and visible:
+                    attendre("%s affiche un écran anti-robot : résous-le dans la fenêtre, puis appuie sur Entrée ici… " % ens)
+                    prix, barre, statut, origine, ean = relever_page(page, url, selecteur)
             except Exception as err:  # délai dépassé, site injoignable…
                 prix, barre, statut, origine, ean = None, None, "erreur", type(err).__name__, None
             with con:
@@ -133,8 +145,10 @@ def lancer(con, config, profil=PROFIL_DEFAUT, visible=True, chrome=False, execut
     return bilan
 
 
-def ouvrir_profil(config, profil=PROFIL_DEFAUT, chrome=False, executable=None, attendre=input):
-    """Ouvre chaque site dans le navigateur du profil pour choisir son drive et accepter les cookies."""
+def ouvrir_profil(config, profil=PROFIL_DEFAUT, chrome=False, executable=None, attendre=input, exemples=None):
+    """Ouvre chaque site dans le navigateur du profil pour choisir son drive et accepter les cookies.
+    `exemples` : {enseigne: url d'un produit suivi}, ouvert à la place de l'accueil, car c'est sur les
+    pages produit que l'anti-robot se déclenche : le résoudre là le fait accepter pour les relevés suivants."""
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
@@ -147,10 +161,11 @@ def ouvrir_profil(config, profil=PROFIL_DEFAUT, chrome=False, executable=None, a
             onglet = page if premiere else ctx.new_page()
             premiere = False
             try:
-                onglet.goto(c["accueil"], wait_until="domcontentloaded", timeout=45000)
+                onglet.goto((exemples or {}).get(ens) or c["accueil"], wait_until="domcontentloaded", timeout=45000)
             except Exception:
                 pass
-        attendre("Dans chaque onglet : accepte les cookies et choisis ton magasin. Puis appuie sur Entrée ici… ")
+        attendre("Dans chaque onglet : accepte les cookies, choisis ton magasin, résous les « je ne suis pas un robot ». "
+                 "Puis appuie sur Entrée ici… ")
         ctx.close()
 
 

@@ -249,6 +249,7 @@ def main(argv=None):
     rel.add_argument("--invisible", action="store_true", help="navigateur caché (plus souvent bloqué)")
     rel.add_argument("--enseigne", choices=ENSEIGNES)
     rel.add_argument("--max", type=int, help="nombre maximum de pages (pour un essai)")
+    rel.add_argument("--manuel", action="store_true", help="s'arrêter sur un écran anti-robot pour le résoudre à la main")
     rap = sp.add_parser("rapport", parents=[nav], help="écrit le comparatif HTML")
     rap.add_argument("--sortie", default=str(ICI / "rapport.html"))
     a = p.parse_args(argv)
@@ -263,11 +264,13 @@ def main(argv=None):
         config = releve.lire_config(a.config)
         opts = dict(profil=a.profil, chrome=a.chrome, executable=a.navigateur)
         if a.commande == "profil":
-            releve.ouvrir_profil(config, **opts)
+            exemples = dict(con.execute("SELECT enseigne, MIN(url) FROM produits WHERE actif = 1 GROUP BY enseigne"))
+            releve.ouvrir_profil(config, exemples=exemples, **opts)
         elif a.commande == "calibrer":
             releve.calibrer(a.url, **opts)
         else:
-            bilan = releve.lancer(con, config, visible=not a.invisible, enseigne=a.enseigne, maximum=a.max, **opts)
+            bilan = releve.lancer(con, config, visible=not a.invisible, enseigne=a.enseigne, maximum=a.max,
+                                  manuel=a.manuel, **opts)
             for ens, compte in sorted(bilan.items()):
                 print("%-11s %s" % (ens, ", ".join("%s %d" % kv for kv in sorted(compte.items()))))
         return 0
