@@ -205,4 +205,4 @@ a{color:var(--accent)}.baisse{color:var(--down);font-weight:700}.hausse{color:va
 <section><h2>Par ingrédient</h2><div class="table"><table><thead><tr><th>Ingrédient</th><th>Enseigne</th><th>Produit</th><th>Prix</th><th>Au kilo / litre / pièce</th><th>Évolution</th><th>Relevé</th></tr></thead><tbody>%s</tbody></table></div></section>
 </main></body></html>""" % (maintenant.strftime("%d/%m/%Y à %H:%M"), len(lignes), avec_prix, _euros(panier["total"]) if panier["commandes"] else "—",
                            _e(bloc_txt), "".join(cmd) or "<p class='mut'>Aucun prix relevé pour l'instant.</p>",
-                           _euros(panier["total"]), seul or "<tr><td colspan='4' class='mut'>—</td></tr>", "".join(rangs))
+                           _euros(panier["total"]) if panier["commandes"] else "—", seul or "<tr><td colspan='4' class='mut'>—</td></tr>", "".join(rangs))
