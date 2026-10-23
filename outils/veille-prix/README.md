@@ -15,7 +15,7 @@ donnees/correspondances.csv ─────────────────�
 
 | Fichier | Rôle |
 |---|---|
-| `donnees/liste_permanente.csv` | Ce que tu achètes hors recettes (`nom,quantite,unite,rayon,note`). Les 3 lignes sont des exemples à remplacer. |
+| `donnees/liste_permanente.csv` | Ce que tu achètes hors recettes (`nom,quantite,unite,rayon,note,frequence`). Le `nom` sert de clé : les précisions (label, marque) vont dans `note`. `frequence` (ex. `1/semaine`) est notée pour plus tard, pas encore utilisée. |
 | `donnees/correspondances.csv` | La pièce maîtresse : relie un ingrédient à un produit précis d'une enseigne. |
 | `veille.sqlite` | Base locale créée au premier import (non versionnée). |
 
