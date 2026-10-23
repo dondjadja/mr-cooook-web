@@ -65,6 +65,7 @@ python3 -m playwright install chromium      # ou utilise ton Chrome : ajoute --c
 | `python3 veille_prix.py profil` | Ouvre une page produit de chaque site : accepte les cookies, choisis ton drive (Auchan Pessac, Carrefour…), résous les « je ne suis pas un robot ». Une fois, puis quand un site t'a « oublié ». |
 | `python3 veille_prix.py importer` | Relit tes CSV (à refaire après chaque modification). |
 | `python3 veille_prix.py releve --max 3` | Premier essai sur 3 pages. Sans `--max` : tous les produits. `--manuel` : s'arrête sur chaque écran anti-robot pour que tu le résolves. |
+| `python3 veille_prix.py saisir "sauce huître" joybuy 4,79` | Note un prix à la main : site qui bloque (Joybuy), Grand Frais, marché (`--contenance 1 --unite kg` pour un produit sans page). Il entre dans le comparatif comme un relevé. |
 | `python3 veille_prix.py rapport` | Écrit `rapport.html` : panier le moins cher livraison comprise, tableau par ingrédient. |
 | `python3 veille_prix.py calibrer URL` | Quand un site donne « prix introuvable » : liste ce qui ressemble à un prix sur la page. Envoie le résultat à Claude, qui remplira `selecteur_prix`. |
 
@@ -78,7 +79,7 @@ rapport ─▶ dernier prix valable par produit, prix au kilo/litre/pièce, évo
            de livraison coûtent plus que l'écart (enseignes.json : frais, seuil_gratuite)
 ```
 
-- `donnees/enseignes.json` : page d'accueil, frais de livraison ou de retrait, seuil de gratuité, sélecteur de prix. Amazon est exclu des relevés (`"releve": false`) : suis-le avec camelcamelcamel ou Keepa.
+- `donnees/enseignes.json` : page d'accueil, frais de livraison ou de retrait, seuil de gratuité, sélecteur de prix. Exclus des relevés (`"releve": false`) : Amazon (suis-le avec camelcamelcamel ou Keepa) et Joybuy, qui renvoie une page « 403 Interdit » aux navigateurs automatisés (note ses prix avec `saisir`, et active les alertes de baisse de prix de l'appli Joybuy sur tes favoris).
 - Le navigateur reste **visible** pendant le relevé : les sites bloquent plus souvent un navigateur caché (`--invisible`).
 - Statut `bloque` : écran anti-robot. Relance plus tard, ou passe par `profil` pour résoudre le captcha une fois à la main.
 - Fréquence prévue : 2 fois par semaine (mardi et vendredi soir). Lance-le à la main tant que le calibrage n'est pas fini ; automatise ensuite (cron ou Automator), ordinateur allumé et session ouverte.

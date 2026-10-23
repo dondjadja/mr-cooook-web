@@ -196,14 +196,42 @@ def importer(con, recettes=None, permanente=None, correspondances=None, courses=
                 "unite = excluded.unite, prix_cible = excluded.prix_cible, actif = 1",
                 (cle, enseigne, l.get("libelle") or None, l["url"], contenance, l.get("unite") or None, prix_cible))
             vus.add((enseigne, l["url"]))
-        # produit retiré du CSV : désactivé, pas supprimé (son historique de relevés reste)
+        # produit retiré du CSV : désactivé, pas supprimé (son historique de relevés reste) ;
+        # les produits créés par `saisir` (sans page web) ne viennent pas du CSV et restent actifs
         for pid, enseigne, url in con.execute("SELECT id, enseigne, url FROM produits WHERE actif = 1").fetchall():
-            if (enseigne, url) not in vus:
+            if (enseigne, url) not in vus and not url.startswith("manuel:"):
                 con.execute("UPDATE produits SET actif = 0 WHERE id = ?", (pid,))
         # ingrédient qui n'est plus nulle part (ni besoin, ni produit) : retiré
         con.execute("DELETE FROM ingredients WHERE cle NOT IN (SELECT cle FROM besoins) "
                     "AND cle NOT IN (SELECT cle FROM produits)")
     return alertes
+
+
+def saisir(con, ingredient, enseigne, prix, prix_barre=None, contenance=None, unite=None, date=None):
+    """Prix noté à la main (site bloqué, Grand Frais, marché) : rattaché au produit suivi de cette
+    enseigne, ou à un produit « manuel » créé pour l'occasion. Rend un message à afficher."""
+    from datetime import datetime
+    cle, enseigne = cle_ingredient(ingredient), cle_ingredient(enseigne).replace(" ", "")
+    if enseigne not in ENSEIGNES:
+        raise ValueError("enseigne inconnue %r (attendu : %s)" % (enseigne, ", ".join(ENSEIGNES)))
+    if contenance is not None:
+        quantite_de_base(contenance, unite)
+    with con:
+        ligne = con.execute("SELECT id, libelle FROM produits WHERE cle = ? AND enseigne = ? AND actif = 1 ORDER BY id",
+                            (cle, enseigne)).fetchone()
+        if ligne:
+            pid, libelle = ligne
+        else:
+            con.execute("INSERT INTO ingredients (cle, nom) VALUES (?, ?) ON CONFLICT(cle) DO NOTHING", (cle, ingredient.strip()))
+            url = "manuel:%s:%s" % (enseigne, cle)
+            con.execute("INSERT INTO produits (cle, enseigne, libelle, url, contenance, unite, actif) VALUES (?, ?, ?, ?, ?, ?, 1) "
+                        "ON CONFLICT(enseigne, url) DO UPDATE SET actif = 1, contenance = COALESCE(excluded.contenance, contenance), "
+                        "unite = COALESCE(excluded.unite, unite)",
+                        (cle, enseigne, ingredient.strip() + " (saisi à la main)", url, contenance, unite))
+            pid, libelle = con.execute("SELECT id, libelle FROM produits WHERE enseigne = ? AND url = ?", (enseigne, url)).fetchone()
+        con.execute("INSERT INTO releves (produit_id, date, prix, prix_barre, statut, origine) VALUES (?, ?, ?, ?, 'ok', 'manuel')",
+                    (pid, date or datetime.now().isoformat(timespec="seconds"), prix, prix_barre))
+    return "%.2f € noté pour %s (%s)." % (prix, libelle or ingredient, enseigne)
 
 
 def liste_unifiee(con):
@@ -250,6 +278,13 @@ def main(argv=None):
     rel.add_argument("--enseigne", choices=ENSEIGNES)
     rel.add_argument("--max", type=int, help="nombre maximum de pages (pour un essai)")
     rel.add_argument("--manuel", action="store_true", help="s'arrêter sur un écran anti-robot pour le résoudre à la main")
+    sai = sp.add_parser("saisir", help="note un prix à la main (site bloqué, Grand Frais, marché)")
+    sai.add_argument("ingredient")
+    sai.add_argument("enseigne", choices=ENSEIGNES)
+    sai.add_argument("prix", type=lambda x: float(x.replace(",", ".")))
+    sai.add_argument("--barre", type=lambda x: float(x.replace(",", ".")), help="prix barré affiché, s'il y en a un")
+    sai.add_argument("--contenance", type=lambda x: float(x.replace(",", ".")), help="pour un produit sans page (marché)")
+    sai.add_argument("--unite", choices=sorted(set(UNITES)))
     rap = sp.add_parser("rapport", parents=[nav], help="écrit le comparatif HTML")
     rap.add_argument("--sortie", default=str(ICI / "rapport.html"))
     a = p.parse_args(argv)
@@ -273,6 +308,13 @@ def main(argv=None):
                                   manuel=a.manuel, **opts)
             for ens, compte in sorted(bilan.items()):
                 print("%-11s %s" % (ens, ", ".join("%s %d" % kv for kv in sorted(compte.items()))))
+        return 0
+    if a.commande == "saisir":
+        try:
+            print(saisir(con, a.ingredient, a.enseigne, a.prix, a.barre, a.contenance, a.unite))
+        except ValueError as err:
+            print("⚠ %s" % err, file=sys.stderr)
+            return 1
         return 0
     if a.commande == "rapport":
         import json

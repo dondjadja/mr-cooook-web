@@ -128,9 +128,18 @@ def prix_depuis_html(html):
     return res
 
 
+RE_TITRE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
+TITRES_BLOCAGE = ("403", "429", "interdit", "forbidden", "access denied", "accès refusé", "just a moment",
+                  "interruption temporaire")
+
+
 def page_bloquee(html, statut_http=None):
-    """Vrai si la page est un écran anti-robot plutôt qu'une page produit."""
+    """Vrai si la page est un écran anti-robot plutôt qu'une page produit.
+    Certains sites (Joybuy) renvoient un statut 200 avec un titre « 403 Interdit »."""
     if statut_http in (401, 403, 429):
         return True
     t = (html or "")[:20000].lower()
-    return any(m in t for m in MARQUEURS_BLOCAGE)
+    m = RE_TITRE.search(t)
+    if m and any(x in m.group(1) for x in TITRES_BLOCAGE):
+        return True
+    return any(x in t for x in MARQUEURS_BLOCAGE)

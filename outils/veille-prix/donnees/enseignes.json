@@ -3,6 +3,6 @@
   "auchan": {"accueil": "https://www.auchan.fr/", "frais": 0, "seuil_gratuite": null, "selecteur_prix": ""},
   "carrefour": {"accueil": "https://www.carrefour.fr/", "frais": 0, "seuil_gratuite": null, "selecteur_prix": ""},
   "intermarche": {"accueil": "https://www.intermarche.com/", "frais": 0, "seuil_gratuite": null, "selecteur_prix": ""},
-  "joybuy": {"accueil": "https://www.joybuy.fr/", "frais": 3.99, "seuil_gratuite": 29, "selecteur_prix": ""},
+  "joybuy": {"accueil": "https://www.joybuy.fr/", "frais": 3.99, "seuil_gratuite": 29, "selecteur_prix": "", "releve": false, "note": "bloque les navigateurs automatisés (403) : prix notés avec `saisir`, alertes de baisse dans l'appli Joybuy"},
   "amazon": {"releve": false, "note": "suivi par camelcamelcamel ou Keepa, pas de relevé direct"}
 }

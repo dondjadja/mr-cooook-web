@@ -48,6 +48,10 @@ class Extraction(unittest.TestCase):
         self.assertTrue(ex.page_bloquee("<html></html>", 403))
         self.assertFalse(ex.page_bloquee(PAGE_VIDE, 200))
 
+    def test_blocage_deguise_en_page_normale(self):
+        joybuy = "<html><head><title>403 Interdit | Joybuy</title></head><body>Interruption temporaire du service</body></html>"
+        self.assertTrue(ex.page_bloquee(joybuy, 200))
+
     def test_ean_depuis_url(self):
         self.assertEqual(ex.ean_depuis_url("https://www.carrefour.fr/p/limonade-authentique-ogeu-3119070064359"), "3119070064359")
         self.assertIsNone(ex.ean_depuis_url("https://www.auchan.fr/ogeu-boisson-limonade-sans-sucres/pr-C1836712"))
@@ -113,6 +117,30 @@ class Comparatif(unittest.TestCase):
         ordre = [p[1] for p in releve_module().ordre_de_passage(produits, graine=1)]
         self.assertEqual(sorted(ordre), sorted(p[1] for p in produits))
         self.assertTrue(all(x != y for x, y in zip(ordre, ordre[1:3])))
+
+
+class Saisie(unittest.TestCase):
+    def setUp(self):
+        self.con = base_exemple()
+
+    def test_prix_rattache_au_produit_suivi(self):
+        vp.saisir(self.con, "Sauce huître", "joybuy", 4.79, date="2026-10-23T12:00:00")
+        l = next(l for l in rapport.lignes_rapport(self.con) if l["url"] == "https://j/1")
+        self.assertEqual((l["prix"], l["date"]), (4.79, "2026-10-23T12:00:00"))
+
+    def test_produit_sans_page_cree_et_garde_a_l_import(self):
+        vp.saisir(self.con, "oignons", "marche", 2.5, contenance=1, unite="kg")
+        vp.saisir(self.con, "oignons", "marche", 2.2, contenance=1, unite="kg")
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM produits WHERE enseigne = 'marche'").fetchone()[0], 1)
+        d = Path(tempfile.mkdtemp())
+        (d / "c.csv").write_text("ingredient,enseigne,libelle,url,contenance,unite,prix_cible\n", encoding="utf-8")
+        vp.importer(self.con, correspondances=d / "c.csv")
+        l = next(l for l in rapport.lignes_rapport(self.con) if l["enseigne"] == "marche")
+        self.assertEqual((l["prix"], l["unitaire"], l["unite_lib"]), (2.2, 2.2, "€/kg"))
+
+    def test_enseigne_inconnue(self):
+        with self.assertRaises(ValueError):
+            vp.saisir(self.con, "riz", "lidl", 1.0)
 
 
 def releve_module():
