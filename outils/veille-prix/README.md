@@ -17,6 +17,7 @@ donnees/correspondances.csv ─────────────────�
 |---|---|
 | `donnees/liste_permanente.csv` | Ce que tu achètes hors recettes (`nom,quantite,unite,rayon,note,frequence,priorite`). Le `nom` sert de clé : les précisions (label, marque) vont dans `note`. `frequence` (ex. `1/semaine`) et `priorite` (`basse`, vide = normale) sont notées pour plus tard, pas encore utilisées. |
 | `donnees/correspondances.csv` | La pièce maîtresse : relie un ingrédient à un produit précis d'une enseigne. |
+| `donnees/releves_externes.csv` | Prix vus ailleurs (captures, recherches web de Claude) : `date,ingredient,enseigne,prix,prix_barre,source`. Chargé par `importer`, sans doublon. |
 | `veille.sqlite` | Base locale créée au premier import (non versionnée). |
 
 ### Remplir `correspondances.csv`
@@ -66,6 +67,7 @@ python3 -m playwright install chromium      # ou utilise ton Chrome : ajoute --c
 | `python3 veille_prix.py importer` | Relit tes CSV (à refaire après chaque modification). |
 | `python3 veille_prix.py releve --max 3` | Premier essai sur 3 pages. Sans `--max` : tous les produits. `--manuel` : s'arrête sur chaque écran anti-robot pour que tu le résolves. |
 | `python3 veille_prix.py saisir "sauce huître" joybuy 4,79` | Note un prix à la main : site qui bloque (Joybuy), Grand Frais, marché (`--contenance 1 --unite kg` pour un produit sans page). Il entre dans le comparatif comme un relevé. |
+| `python3 veille_prix.py openprices` | Récupère dans la base ouverte **Open Prices** les prix connus des produits dont on a le code-barres, relevés autour de Pessac (`--toute-la-france` pour élargir). |
 | `python3 veille_prix.py rapport` | Écrit `rapport.html` : panier le moins cher livraison comprise, tableau par ingrédient. |
 | `python3 veille_prix.py calibrer URL` | Quand un site donne « prix introuvable » : liste ce qui ressemble à un prix sur la page. Envoie le résultat à Claude, qui remplira `selecteur_prix`. |
 

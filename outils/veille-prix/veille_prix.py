@@ -22,6 +22,8 @@ PERMANENTE_DEFAUT = ICI / "donnees" / "liste_permanente.csv"
 CORRESPONDANCES_DEFAUT = ICI / "donnees" / "correspondances.csv"
 BASE_DEFAUT = ICI / "veille.sqlite"
 CONFIG_ENSEIGNES = ICI / "donnees" / "enseignes.json"
+EXTERNES_DEFAUT = ICI / "donnees" / "releves_externes.csv"
+VILLES_PROCHES = ["pessac", "merignac", "talence", "bordeaux", "gradignan", "begles", "villenave-d'ornon", "canejan", "cestas"]
 
 # grandfrais et marche : sans prix en ligne, gardés pour des relevés manuels plus tard
 ENSEIGNES = ["auchan", "carrefour", "leclerc", "intermarche", "joybuy", "amazon", "grandfrais", "marche"]
@@ -207,7 +209,7 @@ def importer(con, recettes=None, permanente=None, correspondances=None, courses=
     return alertes
 
 
-def saisir(con, ingredient, enseigne, prix, prix_barre=None, contenance=None, unite=None, date=None):
+def saisir(con, ingredient, enseigne, prix, prix_barre=None, contenance=None, unite=None, date=None, origine="manuel"):
     """Prix noté à la main (site bloqué, Grand Frais, marché) : rattaché au produit suivi de cette
     enseigne, ou à un produit « manuel » créé pour l'occasion. Rend un message à afficher."""
     from datetime import datetime
@@ -229,9 +231,61 @@ def saisir(con, ingredient, enseigne, prix, prix_barre=None, contenance=None, un
                         "unite = COALESCE(excluded.unite, unite)",
                         (cle, enseigne, ingredient.strip() + " (saisi à la main)", url, contenance, unite))
             pid, libelle = con.execute("SELECT id, libelle FROM produits WHERE enseigne = ? AND url = ?", (enseigne, url)).fetchone()
-        con.execute("INSERT INTO releves (produit_id, date, prix, prix_barre, statut, origine) VALUES (?, ?, ?, ?, 'ok', 'manuel')",
-                    (pid, date or datetime.now().isoformat(timespec="seconds"), prix, prix_barre))
+        date = date or datetime.now().isoformat(timespec="seconds")
+        if con.execute("SELECT 1 FROM releves WHERE produit_id = ? AND date = ? AND prix = ?", (pid, date, prix)).fetchone():
+            return "%.2f € déjà noté pour %s (%s) à cette date." % (prix, libelle or ingredient, enseigne)
+        con.execute("INSERT INTO releves (produit_id, date, prix, prix_barre, statut, origine) VALUES (?, ?, ?, ?, 'ok', ?)",
+                    (pid, date, prix, prix_barre, origine))
     return "%.2f € noté pour %s (%s)." % (prix, libelle or ingredient, enseigne)
+
+
+def importer_externes(con, chemin):
+    """Charge donnees/releves_externes.csv (prix vus sur une capture, une recherche web…). Rend les avertissements."""
+    from sources_ouvertes import lire_releves_externes
+    alertes = []
+    for i, l in enumerate(lire_releves_externes(chemin), start=2):
+        try:
+            date = l.get("date") or None
+            if date and len(date) == 10:
+                date += "T12:00:00"
+            saisir(con, l["ingredient"], l["enseigne"], nombre(l["prix"]), nombre(l.get("prix_barre")),
+                   date=date, origine=l.get("source") or "externe")
+        except (KeyError, TypeError, ValueError) as err:
+            alertes.append("relevés externes, ligne %d : %s" % (i, err))
+    return alertes
+
+
+def importer_open_prices(con, villes=VILLES_PROCHES, interroger=None):
+    """Interroge Open Prices pour chaque code-barres connu et enregistre les prix des enseignes suivies,
+    relevés dans les villes proches (villes=None : toute la France). Rend (nb ajoutés, messages)."""
+    from extraction import ean_depuis_url
+    from sources_ouvertes import interroger_open_prices
+    interroger = interroger or interroger_open_prices
+    eans = {}
+    for cle, ean, url in con.execute("SELECT cle, ean, url FROM produits WHERE actif = 1"):
+        e = ean or ean_depuis_url(url)
+        if e:
+            eans.setdefault(e, cle)
+    ajoutes, messages = 0, []
+    for ean, cle in sorted(eans.items()):
+        try:
+            prix = interroger(ean)
+        except Exception as err:
+            messages.append("%s : Open Prices injoignable (%s)" % (ean, type(err).__name__))
+            continue
+        nom = con.execute("SELECT nom FROM ingredients WHERE cle = ?", (cle,)).fetchone()[0]
+        for p in prix:
+            ville = cle_ingredient(p.get("ville") or "")
+            if villes is not None and ville not in villes:
+                continue
+            if not con.execute("SELECT 1 FROM produits WHERE cle = ? AND enseigne = ? AND actif = 1", (cle, p["enseigne"])).fetchone():
+                continue  # enseigne non suivie pour cet ingrédient
+            avant = con.execute("SELECT COUNT(*) FROM releves").fetchone()[0]
+            saisir(con, nom, p["enseigne"], p["prix"], p["prix_barre"], date=(p["date"] or "")[:10] + "T00:00:00",
+                   origine="openprices:%s" % (p.get("ville") or "?"))
+            ajoutes += con.execute("SELECT COUNT(*) FROM releves").fetchone()[0] - avant
+        messages.append("%s (%s) : %d prix trouvés" % (ean, nom, len(prix)))
+    return ajoutes, messages
 
 
 def liste_unifiee(con):
@@ -263,6 +317,9 @@ def main(argv=None):
     imp.add_argument("--permanente", default=str(PERMANENTE_DEFAUT))
     imp.add_argument("--correspondances", default=str(CORRESPONDANCES_DEFAUT))
     imp.add_argument("--courses", help="liste de courses exportée (.txt ou .md), optionnelle")
+    imp.add_argument("--externes", default=str(EXTERNES_DEFAUT), help="prix trouvés ailleurs (captures, recherches)")
+    op = sp.add_parser("openprices", help="récupère les prix de la base ouverte Open Prices (par code-barres)")
+    op.add_argument("--toute-la-france", action="store_true", help="ne pas se limiter aux villes autour de Pessac")
     sp.add_parser("liste", help="liste unifiée des ingrédients et enseignes reliées")
     sp.add_parser("manquants", help="ingrédients encore reliés à aucun produit")
     nav = argparse.ArgumentParser(add_help=False)
@@ -309,6 +366,12 @@ def main(argv=None):
             for ens, compte in sorted(bilan.items()):
                 print("%-11s %s" % (ens, ", ".join("%s %d" % kv for kv in sorted(compte.items()))))
         return 0
+    if a.commande == "openprices":
+        ajoutes, messages = importer_open_prices(con, villes=None if a.toute_la_france else VILLES_PROCHES)
+        for m in messages:
+            print(m)
+        print("%d prix ajoutés." % ajoutes)
+        return 0
     if a.commande == "saisir":
         try:
             print(saisir(con, a.ingredient, a.enseigne, a.prix, a.barre, a.contenance, a.unite))
@@ -325,6 +388,7 @@ def main(argv=None):
         return 0
     if a.commande == "importer":
         alertes = importer(con, a.recettes, a.permanente, a.correspondances, a.courses)
+        alertes += importer_externes(con, a.externes)
         n_ing = con.execute("SELECT COUNT(*) FROM ingredients").fetchone()[0]
         n_prod = con.execute("SELECT COUNT(*) FROM produits WHERE actif = 1").fetchone()[0]
         print("%d ingrédients, %d produits reliés." % (n_ing, n_prod))
