@@ -83,6 +83,7 @@ rapport ─▶ dernier prix valable par produit, prix au kilo/litre/pièce, évo
 
 - `donnees/enseignes.json` : page d'accueil, frais de livraison ou de retrait, seuil de gratuité, sélecteur de prix. Exclus des relevés (`"releve": false`) : Amazon (suis-le avec camelcamelcamel ou Keepa) et Joybuy, qui renvoie une page « 403 Interdit » aux navigateurs automatisés (note ses prix avec `saisir`, et active les alertes de baisse de prix de l'appli Joybuy sur tes favoris).
 - Le navigateur reste **visible** pendant le relevé : les sites bloquent plus souvent un navigateur caché (`--invisible`).
+- Le navigateur ne se signale pas comme automatisé (`releve.py`, `_contexte`) : choix de Jeff du 24/10/2026. Rien d'autre : pas de proxy, pas de résolution automatique de captcha ; un site qui bloque malgré `profil` passe en `saisir`.
 - Statut `bloque` : écran anti-robot. Relance plus tard, ou passe par `profil` pour résoudre le captcha une fois à la main.
 - Fréquence prévue : 2 fois par semaine (mardi et vendredi soir). Lance-le à la main tant que le calibrage n'est pas fini ; automatise ensuite (cron ou Automator), ordinateur allumé et session ouverte.
 - Tests : `python3 -m unittest discover -s tests` (le test du navigateur utilise des pages locales, jamais les vrais sites).

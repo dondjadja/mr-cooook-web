@@ -166,7 +166,10 @@ def ouvrir_profil(config, profil=PROFIL_DEFAUT, chrome=False, executable=None, a
                 pass
         attendre("Dans chaque onglet : accepte les cookies, choisis ton magasin, résous les « je ne suis pas un robot ». "
                  "Puis appuie sur Entrée ici… ")
-        ctx.close()
+        try:
+            ctx.close()
+        except Exception:
+            pass  # navigateur déjà fermé à la main : le profil est enregistré au fil de l'eau
 
 
 def calibrer(url, profil=PROFIL_DEFAUT, chrome=False, executable=None, ecrire=print):
