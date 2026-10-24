@@ -67,7 +67,8 @@ class Externes(unittest.TestCase):
         con = vp.ouvrir(":memory:")
         vp.importer(con, vp.RECETTES_DEFAUT, vp.PERMANENTE_DEFAUT, vp.CORRESPONDANCES_DEFAUT)
         self.assertEqual(vp.importer_externes(con, vp.EXTERNES_DEFAUT), [])
-        self.assertEqual(con.execute("SELECT COUNT(*) FROM releves").fetchone()[0], 4)
+        lignes = len(so.lire_releves_externes(vp.EXTERNES_DEFAUT))
+        self.assertEqual(con.execute("SELECT COUNT(*) FROM releves").fetchone()[0], lignes)
 
 
 if __name__ == "__main__":

@@ -3,3 +3,4 @@ date,ingredient,enseigne,prix,prix_barre,source
 2026-10-23,sauce huître,joybuy,4.79,,capture joybuy.fr (prix normal ; 3.79 = offre de bienvenue appli)
 2026-10-23,limonade Ogeu sans sucre,auchan,0.95,,capture Auchan Drive Pessac
 2026-10-24,limonade Ogeu sans sucre,carrefour,0.99,,recherche web carrefour.fr (magasin et date de la page inconnus)
+2026-10-24,sauce huître,joybuy,4.79,,Tavily recherche joybuy.fr (prix initial ; 3.79 = offre de bienvenue)
