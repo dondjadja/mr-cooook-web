@@ -2,3 +2,4 @@ veille.sqlite
 __pycache__/
 profil-navigateur/
 rapport.html
+exports/
