@@ -35,8 +35,10 @@ class TestSelection(unittest.TestCase):
         gardes, exclus = classer([bio, cage, nestle], CRITERES)
         notes = {g["nom"]: g["note"] for g in gardes}
         # cage : prix 1×70 + Tom 0 + Nutri 10 + France 20 = 100/140 ; bio : 0,53×70 + 12,5 + 10 + 20 + 15 = 94,7/140 ≈ 67,7
-        self.assertAlmostEqual(notes["12 oeufs cage France"], 71.4, places=1)
-        self.assertAlmostEqual(notes["6 oeufs bio France"], 67.7, places=1)
+        # + bien-être 40 : cage 0 → 100/180 ; bio 0,75 × 40 = 30 → 124,7/180
+        self.assertAlmostEqual(notes["12 oeufs cage France"], 55.6, places=1)
+        self.assertAlmostEqual(notes["6 oeufs bio France"], 69.3, places=1)
+        self.assertIsNone(classer([{"nom": "Chips", "prix_unite": "5", "unite": "kg"}], CRITERES)[0][0]["criteres"]["bien_etre"])
         self.assertEqual(exclus[0]["exclu"], "marque nestle")
 
 

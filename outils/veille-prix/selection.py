@@ -102,6 +102,13 @@ def note_agent(regles, produit, off):
     return max(-3, min(3, sum(r["pts"] for r in appliquees))), appliquees
 
 
+def bien_etre(produit, off, regle):
+    """Œufs et viandes : de 0 (cage) à 1 (Label Rouge) ; None pour les autres produits ou sans information."""
+    if not regle or not any(contient_mot(produit.get("nom"), f) for f in regle["familles"]):
+        return None
+    return next((note for mots, note in regle["niveaux"] if _trouve(produit, off, mots)), None)
+
+
 def criteres_produit(produit, criteres, grilles, prix_min):
     """Chaque critère ramené de 0 à 1 (None = pas de donnée, critère retiré pour ce produit)."""
     off = produit.get("off") or {}
@@ -111,6 +118,7 @@ def criteres_produit(produit, criteres, grilles, prix_min):
          "france": 1.0 if _trouve(produit, off, criteres["mots_france"]) else 0.0,
          "label": 1.0 if _trouve(produit, off, criteres["labels_qualite"]) else 0.0,
          "bio": 1.0 if contient_mot(produit.get("nom"), "bio") or "en:organic" in tags else 0.0}
+    c["bien_etre"] = bien_etre(produit, off, criteres.get("bien_etre"))
     details = {}
     for agent, regles in grilles.items():
         n, appliquees = note_agent(regles, produit, off)
@@ -203,7 +211,7 @@ def candidats_pour(besoin, fichiers):
     return sortie
 
 
-ORDRE = ["prix", "agent_tomcooks", "agent_prendsunfruit", "agent_joffturner", "nutriscore", "france", "label", "bio"]
+ORDRE = ["prix", "bien_etre", "agent_tomcooks", "agent_prendsunfruit", "agent_joffturner", "nutriscore", "france", "label", "bio"]
 
 
 def top(besoin, fichiers, criteres, cache, sans_reseau, nb=3):

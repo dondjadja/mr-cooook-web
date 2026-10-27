@@ -48,7 +48,8 @@
     "nutriscore": 10,
     "france": 20,
     "label": 10,
-    "bio": 15
+    "bio": 15,
+    "bien_etre": 40
   },
   "labels_qualite": [
     "label rouge",
@@ -78,5 +79,88 @@
     "fr:origine-france",
     "fr:viande-de-porc-francaise",
     "fr:volaille-francaise"
-  ]
+  ],
+  "bien_etre": {
+    "_lisez_moi": "Ne compte que pour les œufs et les viandes (sinon retiré). Premier niveau trouvé dans le nom ou les labels Open Food Facts. « Fermier » seul n'est pas retenu : non réglementé pour les œufs (Tom Cooks, 24/11/2025).",
+    "familles": [
+      "oeuf",
+      "oeufs",
+      "poulet",
+      "poulets",
+      "volaille",
+      "volailles",
+      "dinde",
+      "canard",
+      "pintade",
+      "caille",
+      "porc",
+      "jambon",
+      "lardons",
+      "bacon",
+      "saucisse",
+      "saucisses",
+      "saucisson",
+      "chorizo",
+      "rosette",
+      "boudin",
+      "rillettes",
+      "merguez",
+      "chipolata",
+      "chipolatas",
+      "boeuf",
+      "veau",
+      "agneau",
+      "viande",
+      "viandes",
+      "steak",
+      "hache",
+      "escalope",
+      "escalopes"
+    ],
+    "niveaux": [
+      [
+        [
+          "label rouge",
+          "liberte",
+          "libre parcours",
+          "en:label-rouge"
+        ],
+        1.0
+      ],
+      [
+        [
+          "plein air",
+          "code 1",
+          "en:free-range"
+        ],
+        0.75
+      ],
+      [
+        [
+          "bio",
+          "code 0",
+          "en:organic",
+          "fr:ab-agriculture-biologique"
+        ],
+        0.75
+      ],
+      [
+        [
+          "au sol",
+          "code 2",
+          "en:barn-eggs"
+        ],
+        0.25
+      ],
+      [
+        [
+          "cage",
+          "cages",
+          "code 3",
+          "en:cage-eggs"
+        ],
+        0.0
+      ]
+    ]
+  }
 }
