@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from selection import charger_criteres, classer, contient_mot, motif_interdit, valeur_nutrition
+from selection import charger_criteres, charger_grilles, classer, contient_mot, motif_interdit, note_agent
 
 CRITERES = charger_criteres()
 
@@ -21,25 +21,22 @@ class TestSelection(unittest.TestCase):
         self.assertEqual(motif_interdit({"nom": "Riz", "marque": "X"}, CRITERES, {"brands": "Nestlé"}), "marque nestle")
         self.assertIsNone(motif_interdit({"nom": "Chips nature", "marque": "LAY'S"}, CRITERES))
 
-    def test_valeur_nutrition(self):
-        self.assertEqual(valeur_nutrition({"nutriscore_score": -5}), 46)
-        self.assertIsNone(valeur_nutrition({}))
+    def test_agent_sans_avis(self):
+        grilles = charger_grilles()
+        self.assertEqual(note_agent(grilles["prendsunfruit"], {"nom": "12 oeufs plein air"}, {})[0], None)
+        self.assertEqual(note_agent(grilles["tomcooks"], {"nom": "6 oeufs cage code 3"}, {})[0], -3)
+        self.assertEqual(note_agent(grilles["joffturner"], {"nom": "Jambon"}, {"additives_tags": ["en:e250"]})[0], -3)
 
-    def test_classement_nutrition(self):
-        # B coûte plus cher au kilo mais est bien meilleur : il gagne au rapport nutrition / prix.
-        a = {"nom": "A", "prix_unite": "10", "off": {"nutriscore_score": 20}}   # 21 / 10 = 2,1
-        b = {"nom": "B", "prix_unite": "12", "off": {"nutriscore_score": 0}}    # 41 / 12 = 3,4
-        mode, gardes, _ = classer([a, b], CRITERES)
-        self.assertEqual(mode, "nutrition")
-        self.assertEqual([g["nom"] for g in gardes], ["B", "A"])
-
-    def test_repli_prix_kilo_et_label(self):
-        a = {"nom": "A", "prix_unite": "10", "off": {"nutriscore_score": 0}}
-        b = {"nom": "B bio", "prix_unite": "10.3", "off": {}}                     # nutrition inconnue
-        c = {"nom": "C nestle", "marque": "NESTLE", "prix_unite": "1"}
-        mode, gardes, exclus = classer([a, b, c], CRITERES)
-        self.assertEqual(mode, "prix_kg")
-        self.assertEqual([g["nom"] for g in gardes], ["B bio", "A"])  # 3 % plus cher, mais bio
+    def test_oeufs(self):
+        # Produits fictifs. Prix 70, Tom 15, Nutri 10, France 20, Label 10, Bio 15 ; les deux autres agents sans avis.
+        bio = {"nom": "6 oeufs bio France", "prix_unite": "0.47", "unite": "piece", "off": {"nutriscore_grade": "a"}}
+        cage = {"nom": "12 oeufs cage France", "prix_unite": "0.25", "unite": "piece", "off": {"nutriscore_grade": "a"}}
+        nestle = {"nom": "Oeufs", "marque": "NESTLE", "prix_unite": "0.10", "unite": "piece"}
+        gardes, exclus = classer([bio, cage, nestle], CRITERES)
+        notes = {g["nom"]: g["note"] for g in gardes}
+        # cage : prix 1×70 + Tom 0 + Nutri 10 + France 20 = 100/140 ; bio : 0,53×70 + 12,5 + 10 + 20 + 15 = 94,7/140 ≈ 67,7
+        self.assertAlmostEqual(notes["12 oeufs cage France"], 71.4, places=1)
+        self.assertAlmostEqual(notes["6 oeufs bio France"], 67.7, places=1)
         self.assertEqual(exclus[0]["exclu"], "marque nestle")
 
 
