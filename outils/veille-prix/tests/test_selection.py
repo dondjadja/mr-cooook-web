@@ -13,6 +13,7 @@ class TestSelection(unittest.TestCase):
         self.assertTrue(contient_mot("Céréales LION caramel", "lion"))
         self.assertFalse(contient_mot("Biscuits Lionel", "lion"))
         self.assertTrue(contient_mot("Café NESCAFÉ", "nescafe"))
+        self.assertTrue(contient_mot("Œufs frais", "oeufs"))
 
     def test_interdits(self):
         self.assertEqual(motif_interdit({"nom": "Purée", "marque": "MOUSLINE"}, CRITERES), "marque mousline")

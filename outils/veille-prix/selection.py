@@ -33,7 +33,9 @@ AGENT = "mr-cooook-veille-prix/1.0 (usage personnel)"
 
 
 def sans_accents(texte):
-    return unicodedata.normalize("NFKD", str(texte or "")).encode("ascii", "ignore").decode().lower()
+    """« Œufs Élevés » → « oeufs eleves » (œ et æ ne se décomposent pas tout seuls)."""
+    texte = str(texte or "").replace("œ", "oe").replace("Œ", "Oe").replace("æ", "ae").replace("Æ", "Ae")
+    return unicodedata.normalize("NFKD", texte).encode("ascii", "ignore").decode().lower()
 
 
 def contient_mot(texte, mot):
@@ -128,6 +130,15 @@ def criteres_produit(produit, criteres, grilles, prix_min):
     return c, details
 
 
+UNITES = {"pce": "u", "piece": "u", "pieces": "u", "unite": "u", "kilogramme": "kg", "litre": "l"}
+
+
+def unite(produit):
+    """Même unité d'une enseigne à l'autre : « pce » (Auchan) = « u » (Carrefour), « kilogramme » = « kg »."""
+    u = sans_accents(produit.get("unite")).strip()
+    return UNITES.get(u, u)
+
+
 def classer(candidats, criteres, grilles=None):
     """candidats : [{nom, marque, prix_unite, unite, enseigne, off}] → (gardés triés par note /100, exclus).
     Le prix se compare entre produits de même unité (kg, l, pièce) : le moins cher vaut 1, deux fois plus cher 0,5."""
@@ -140,14 +151,21 @@ def classer(candidats, criteres, grilles=None):
         else:
             pu = c.get("prix_unite")
             gardes.append({**c, "prix_unite": float(pu) if pu not in (None, "") else None})
+    # Le prix ne se compare qu'à unité égale : les produits d'une autre unité que la plus fréquente
+    # (1/4 de poulet « à la pièce » parmi des poulets « au kilo ») sont mis à part.
+    unites = [unite(g) for g in gardes if g["prix_unite"]]
+    principale = max(set(unites), key=unites.count) if unites else None
+    for g in [g for g in gardes if g["prix_unite"] and unite(g) != principale]:
+        gardes.remove(g)
+        exclus.append({**g, "exclu": f"vendu au {unite(g) or '?'}, pas au {principale}"})
     prix_min = {}
     for g in gardes:
         if g["prix_unite"]:
-            u = g.get("unite") or ""
+            u = unite(g)
             prix_min[u] = min(prix_min.get(u, g["prix_unite"]), g["prix_unite"])
     poids = criteres["poids"]
     for g in gardes:
-        g["criteres"], g["avis"] = criteres_produit(g, criteres, grilles, prix_min.get(g.get("unite") or ""))
+        g["criteres"], g["avis"] = criteres_produit(g, criteres, grilles, prix_min.get(unite(g)))
         presents = {k: v for k, v in g["criteres"].items() if v is not None and k in poids}
         total = sum(poids[k] for k in presents)
         g["note"] = round(100 * sum(poids[k] * v for k, v in presents.items()) / total, 1) if total else 0
@@ -199,14 +217,17 @@ def derniers_exports(dossier=ICI / "exports"):
 
 
 def candidats_pour(besoin, fichiers):
-    mots = [m for m in sans_accents(besoin).split() if m]
+    # « oeufs -caille » : les mots précédés d'un tiret excluent le produit.
+    mots = [m for m in sans_accents(besoin).split() if m and not m.startswith("-")]
+    sans = [m[1:] for m in sans_accents(besoin).split() if m.startswith("-") and len(m) > 1]
     sortie = []
     for f in fichiers:
         enseigne = f.stem.split("_")[0]
         for ligne in csv.DictReader(f.open(encoding="utf-8")):
             if ligne.get("disponible") == "False":
                 continue
-            if all(contient_mot(ligne.get("nom"), m) or m in sans_accents(ligne.get("nom")) for m in mots):
+            if all(contient_mot(ligne.get("nom"), m) or m in sans_accents(ligne.get("nom")) for m in mots) \
+                    and not any(contient_mot(ligne.get("nom"), m) for m in sans):
                 sortie.append({**ligne, "enseigne": enseigne})
     return sortie
 

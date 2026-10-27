@@ -209,10 +209,16 @@ def _lire_auchan(page, url):
 # Pour chaque enseigne : accueil (pour choisir le magasin), catégories connues, lecteur de page.
 ENSEIGNES = {
     "carrefour": {"accueil": "https://www.carrefour.fr/",
-                  "categories": {"epicerie-salee": "https://www.carrefour.fr/r/epicerie-salee"},
+                  "categories": {"epicerie-salee": "https://www.carrefour.fr/r/epicerie-salee",
+                                 "oeufs": "https://www.carrefour.fr/r/cremerie/oeufs",
+                                 "boucherie": "https://www.carrefour.fr/r/viandes-et-poissons/boucherie",
+                                 "volaille": "https://www.carrefour.fr/r/viandes-et-poissons/volaille-et-rotisserie"},
                   "lire": _lire_carrefour},
     "auchan": {"accueil": "https://www.auchan.fr/ogeu-boisson-limonade-sans-sucres/pr-C1836712",
-               "categories": {"epicerie-salee": "https://www.auchan.fr/epicerie-salee/ca-n06"},
+               "categories": {"epicerie-salee": "https://www.auchan.fr/epicerie-salee/ca-n06",
+                              "oeufs": "https://www.auchan.fr/oeufs-produits-laitiers/cremerie-oeufs-laits/oeufs/ca-n010103",
+                              "boucherie": "https://www.auchan.fr/boucherie-volaille-poissonnerie/boucherie/ca-n0201",
+                              "volaille": "https://www.auchan.fr/boucherie-volaille-poissonnerie/volaille-lapin/ca-n0202"},
                "lire": _lire_auchan},
     # Adresse relative : complétée par l'adresse du drive choisi (magasins.choisir_leclerc → base).
     "leclerc": {"accueil": "https://www.leclercdrive.fr/",

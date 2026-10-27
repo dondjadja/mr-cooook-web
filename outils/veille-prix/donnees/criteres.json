@@ -65,7 +65,8 @@
     "en:pgi",
     "en:msc",
     "fr:aoc",
-    "en:sustainable-seafood-msc"
+    "en:sustainable-seafood-msc",
+    "fr:label-rouge"
   ],
   "mots_france": [
     "france",
@@ -78,7 +79,9 @@
     "en:made-in-france",
     "fr:origine-france",
     "fr:viande-de-porc-francaise",
-    "fr:volaille-francaise"
+    "fr:volaille-francaise",
+    "en:french-eggs",
+    "en:egg-laid-in-france"
   ],
   "bien_etre": {
     "_lisez_moi": "Ne compte que pour les œufs et les viandes (sinon retiré). Premier niveau trouvé dans le nom ou les labels Open Food Facts. « Fermier » seul n'est pas retenu : non réglementé pour les œufs (Tom Cooks, 24/11/2025).",
@@ -123,7 +126,8 @@
           "label rouge",
           "liberte",
           "libre parcours",
-          "en:label-rouge"
+          "en:label-rouge",
+          "fr:label-rouge"
         ],
         1.0
       ],
@@ -131,7 +135,8 @@
         [
           "plein air",
           "code 1",
-          "en:free-range"
+          "en:free-range",
+          "en:free-range-eggs"
         ],
         0.75
       ],
@@ -140,7 +145,8 @@
           "bio",
           "code 0",
           "en:organic",
-          "fr:ab-agriculture-biologique"
+          "fr:ab-agriculture-biologique",
+          "en:organic-eggs"
         ],
         0.75
       ],
@@ -157,7 +163,8 @@
           "cage",
           "cages",
           "code 3",
-          "en:cage-eggs"
+          "en:cage-eggs",
+          "en:cage-chicken-eggs"
         ],
         0.0
       ]
