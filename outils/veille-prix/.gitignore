@@ -3,3 +3,4 @@ __pycache__/
 profil-navigateur/
 rapport.html
 exports/
+donnees/cache_off.json

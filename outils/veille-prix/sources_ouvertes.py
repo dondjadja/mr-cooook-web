@@ -8,12 +8,25 @@ import csv
 import json
 import urllib.parse
 import urllib.request
+import ssl
 from pathlib import Path
 
 URL_OPEN_PRICES = "https://prices.openfoodfacts.org/api/v1/prices"
 # nom d'enseigne tel qu'il apparaît dans OpenStreetMap (minuscules, sans accents) -> nos codes
 MARQUES = {"leclerc": "leclerc", "carrefour": "carrefour", "auchan": "auchan", "intermarche": "intermarche",
            "intermarché": "intermarche", "grand frais": "grandfrais"}
+
+
+# Le Python de python.org n'apporte pas de certificats : sans eux, tout appel https échoue
+# (CERTIFICATE_VERIFY_FAILED). On prend alors ceux du Mac, sans rien installer.
+_CERTIFICATS_MAC = "/etc/ssl/cert.pem"
+
+
+def ouvrir_https(req, timeout=30):
+    contexte = ssl.create_default_context()
+    if not ssl.get_default_verify_paths().cafile and Path(_CERTIFICATS_MAC).exists():
+        contexte = ssl.create_default_context(cafile=_CERTIFICATS_MAC)
+    return urllib.request.urlopen(req, timeout=timeout, context=contexte)
 
 
 def enseigne_osm(lieu):
@@ -35,7 +48,7 @@ def lire_open_prices(donnees):
     return sortie
 
 
-def interroger_open_prices(ean, taille=50, ouvrir=urllib.request.urlopen):
+def interroger_open_prices(ean, taille=50, ouvrir=ouvrir_https):
     """Derniers prix connus pour un code-barres (réseau requis : à lancer sur ta machine)."""
     url = URL_OPEN_PRICES + "?" + urllib.parse.urlencode({"product_code": ean, "order_by": "-date", "size": taille})
     req = urllib.request.Request(url, headers={"User-Agent": "veille-prix-perso (Mr Cooook)"})

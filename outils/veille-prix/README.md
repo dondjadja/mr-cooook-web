@@ -92,3 +92,20 @@ rapport ─▶ dernier prix valable par produit, prix au kilo/litre/pièce, évo
 ## Étape suivante
 
 3. Alertes ntfy (prix cible, baisse, prix barré, promo « le 2e à -X % ») et ordre de passage selon fréquence et priorité.
+
+## Choisir le meilleur produit pour un besoin
+
+```
+python3 selection.py chips
+```
+
+Règles dans `donnees/criteres.json` :
+
+| Étape | Règle |
+|---|---|
+| Interdits | Nestlé et ses marques ; huile de palme (détectée par Open Food Facts ou dans le nom) |
+| Classement | Meilleur rapport nutrition / prix au kilo. La nutrition, c'est le Nutri-Score d'Open Food Facts. |
+| Repli | Si la nutrition d'un des produits manque, on classe au prix au kilo ou au litre. |
+| Labels | Bio et origine France ne font que départager deux produits à moins de 5 % d'écart. |
+
+Seul Carrefour fournit le code-barres : c'est lui qui permet de retrouver la nutrition. Les fiches lues sont gardées dans `donnees/cache_off.json`.

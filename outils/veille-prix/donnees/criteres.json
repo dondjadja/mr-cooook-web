@@ -1,0 +1,11 @@
+{
+  "_lisez_moi": "Règles de choix des produits. Comparaison : meilleur rapport nutrition / prix au kilo (Nutri-Score d'Open Food Facts) ; si la nutrition manque pour un des produits comparés, on compare au prix au kilo ou au litre. Labels : départagent seulement deux produits proches.",
+  "interdits_ingredients": ["huile de palme", "palme"],
+  "interdits_marques": ["nestle", "nestlé", "nescafe", "nescafé", "maggi", "buitoni", "ricore", "ricoré", "nesquik",
+                        "chocapic", "kitkat", "kit kat", "lion", "galak", "smarties", "vittel", "perrier",
+                        "contrex", "hepar", "san pellegrino", "s.pellegrino", "la laitiere", "la laitière", "mousline",
+                        "garden gourmet", "purina", "friskies", "nespresso", "dolce gusto",
+                        "herta", "fitness", "golden grahams", "cheerios", "cereal partners"],
+  "labels_bonus": ["bio", "origine france"],
+  "ecart_label": 0.05
+}
