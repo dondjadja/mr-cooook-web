@@ -5,7 +5,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import magasins
-from scraper_categorie import decoder_payload, lignes_auchan, lignes_produits, suivante_auchan
+from scraper_categorie import (decoder_payload, lignes_auchan, lignes_leclerc, lignes_produits, suivante_auchan,
+                               suivante_leclerc)
 
 
 class TestScraperCategorie(unittest.TestCase):
@@ -45,6 +46,23 @@ class TestScraperCategorie(unittest.TestCase):
         self.assertEqual((l["promo"], l["disponible"], l["image"]), ("-50% sur le 2ème", True, "https://cdn/x.jpg?a=1&b=2"))
         self.assertEqual(suivante_auchan(html, "https://www.auchan.fr/epicerie-salee/ca-n06"),
                          "https://www.auchan.fr/epicerie-salee/ca-n06?page=2")
+
+    def test_rayon_leclerc(self):
+        produit = {"sType": "Produit", "sId": "1", "sLibelleLigne1": "Chips Savour ", "sLibelleLigne2": "Cheddar &amp; Ciboulette - 120g",
+                   "nrPVUnitaireTTC": 1.63, "sPrixPromo": "0,00 €", "sPrixParUniteDeMesure": "13,58 € / kg",
+                   "nrPVParUniteDeMesureTTC": 13.58, "eDisponibilite": 0, "iQteDisponible": 3,
+                   "sTexteLogoBRII": "Le 2ème est à -59%", "sUrlPageProduit": "https://fd5/p.aspx", "sUrlVignetteProduit": "https://img"}
+        html = ("Utilitaires.widget.initOptions('ctl00_main_ctl05_pnlElementProduit',"
+                + json.dumps({"objContenu": {"lstElements": [{"objElement": produit, "lstEnfants": []},
+                                                              {"objElement": produit, "lstEnfants": []}]}}) + ");")
+        (l,) = lignes_leclerc(html)
+        self.assertEqual((l["nom"], l["prix"], l["prix_unite"], l["unite"], l["disponible"], l["promo"]),
+                         ("Chips Savour Cheddar & Ciboulette - 120g", 1.63, 13.58, "kg", True, "Le 2ème est à -59%"))
+        self.assertEqual(suivante_leclerc("https://fd5/magasin-1/rayon-284424-Aperitifs-et-Chips.aspx"),
+                         "https://fd5/magasin-1/rayon-284421-Pates-Riz-Purees-Feculents.aspx")
+        self.assertIsNone(suivante_leclerc("https://fd5/magasin-1/rayon-284426-Soupes-et-Croutons.aspx"))
+        self.assertEqual(magasins.leclerc_base("https://fd5/magasin-233301-233301-villenave-dornon.aspx"),
+                         "https://fd5/magasin-233301-233301-villenave-dornon/")
 
 
 class TestMagasins(unittest.TestCase):

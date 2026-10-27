@@ -9,8 +9,11 @@ from html.parser import HTMLParser
 
 RE_PRIX = re.compile(r"(\d{1,4})\s*(?:[.,]\s*(\d{1,2})|€\s*(\d{2}))")
 RE_EAN = re.compile(r"(?<!\d)(\d{13})(?!\d)")
-MARQUEURS_BLOCAGE = ("captcha", "datadome", "cf-challenge", "challenge-platform", "access denied",
-                     "accès refusé", "acces refuse", "are you a robot", "êtes-vous un robot", "px-captcha")
+# Pas « datadome » ni « captcha » seuls : Leclerc charge le script DataDome sur toutes ses pages normales.
+# L'écran de blocage DataDome, lui, affiche toujours un cadre captcha-delivery.com.
+MARQUEURS_BLOCAGE = ("captcha-delivery", "cf-challenge", "challenge-platform", "access denied",
+                     "accès refusé", "acces refuse", "are you a robot", "êtes-vous un robot", "px-captcha",
+                     "pas à un robot")
 
 
 def nombre_prix(texte):

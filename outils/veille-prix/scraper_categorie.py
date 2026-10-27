@@ -132,6 +132,65 @@ def suivante_auchan(html, url):
     return urljoin(url, html_lib.unescape(m.group(1))) if m else None
 
 
+def _objets_leclerc(x):
+    if isinstance(x, dict):
+        if "sLibelleLigne1" in x and "nrPVUnitaireTTC" in x:
+            yield x
+        for v in x.values():
+            yield from _objets_leclerc(v)
+    elif isinstance(x, list):
+        for v in x:
+            yield from _objets_leclerc(v)
+
+
+def lignes_leclerc(html):
+    """Produits d'un rayon Leclerc Drive : données du bloc « pnlElementProduit » (hors carrousels promo)."""
+    m = re.search(r"initOptions\('[^']*pnlElementProduit',", html)
+    if not m:
+        return []
+    donnees, _ = json.JSONDecoder().raw_decode(html[m.end():])
+    lignes, vus = [], set()
+    for p in _objets_leclerc(donnees.get("objContenu")):
+        if p.get("sType") != "Produit" or p["sId"] in vus:
+            continue
+        vus.add(p["sId"])
+        promo = nombre_prix(p.get("sPrixPromo") or "")
+        unite = re.search(r"/\s*(\w+)", p.get("sPrixParUniteDeMesure") or "")
+        offres = [html_lib.unescape(t) for t in (p.get("sTexteLogoBRII"), p.get("sTexteLogoTel")) if t]
+        lignes.append({
+            "nom": html_lib.unescape(f"{p['sLibelleLigne1'].strip()} {p.get('sLibelleLigne2') or ''}").strip(),
+            "prix": promo if promo else p["nrPVUnitaireTTC"],
+            "prix_barre": p["nrPVUnitaireTTC"] if promo else None,
+            "promo": " ; ".join(offres),
+            "prix_unite": p.get("nrPVParUniteDeMesureTTC"),
+            "unite": unite.group(1).lower() if unite else "",
+            "marque": "",
+            "disponible": p.get("eDisponibilite") == 0 and (p.get("iQteDisponible") or 0) > 0,
+            "ean": "",
+            "url": p.get("sUrlPageProduit") or "",
+            "image": p.get("sUrlVignetteProduit") or "",
+        })
+    return lignes
+
+
+# Épicerie salée chez Leclerc : pas de page unique, on enchaîne ses rayons (mêmes numéros dans tous les drives).
+RAYONS_LECLERC = ["rayon-284424-Aperitifs-et-Chips.aspx", "rayon-284421-Pates-Riz-Purees-Feculents.aspx",
+                  "rayon-284425-Assaisonnements-et-Condiments.aspx", "rayon-284422-Conserves-de-legumes.aspx",
+                  "rayon-303866-Conserves-de-poisson-et-viande.aspx", "rayon-288378-Bouillons-Fonds-et-Sauces.aspx",
+                  "rayon-284423-Plats-cuisines.aspx", "rayon-284426-Soupes-et-Croutons.aspx"]
+
+
+def suivante_leclerc(url):
+    base, _, rayon = url.split("?")[0].rpartition("/")
+    i = RAYONS_LECLERC.index(rayon) if rayon in RAYONS_LECLERC else len(RAYONS_LECLERC)
+    return f"{base}/{RAYONS_LECLERC[i + 1]}" if i + 1 < len(RAYONS_LECLERC) else None
+
+
+def _lire_leclerc(page, url):
+    lignes = lignes_leclerc(page.content())
+    return (lignes or None), suivante_leclerc(url)
+
+
 def _lire_carrefour(page, url):
     etat = page.evaluate("() => window.__INITIAL_STATE__ || null")
     if not etat or not etat.get("routeData"):
@@ -155,6 +214,10 @@ ENSEIGNES = {
     "auchan": {"accueil": "https://www.auchan.fr/ogeu-boisson-limonade-sans-sucres/pr-C1836712",
                "categories": {"epicerie-salee": "https://www.auchan.fr/epicerie-salee/ca-n06"},
                "lire": _lire_auchan},
+    # Adresse relative : complétée par l'adresse du drive choisi (magasins.choisir_leclerc → base).
+    "leclerc": {"accueil": "https://www.leclercdrive.fr/",
+                "categories": {"epicerie-salee": RAYONS_LECLERC[0]},
+                "lire": _lire_leclerc},
 }
 
 
@@ -196,6 +259,8 @@ def aspirer(enseigne, url, maxi, sortie, visible=True, profil=PROFIL_DEFAUT, ecr
             bilan["magasin"] = mag
             etiquette = f"{mag['nom']} ({mag['distance']:.1f} km)"
             ecrire(f"magasin : {etiquette}")
+            if mag.get("base"):
+                url = urljoin(mag["base"], url)
         suivante = None if bilan["blocage"] else url
         while suivante and bilan["produits"] < maxi:
             pause(3, 5)

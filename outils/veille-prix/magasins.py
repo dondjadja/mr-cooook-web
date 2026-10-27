@@ -115,4 +115,25 @@ def choisir_auchan(page):
     return {"nom": m["nom"], "ref": "", "ville": "", "distance": m["distance"]}
 
 
-CHOIX = {"carrefour": choisir_carrefour, "auchan": choisir_auchan}
+# --- Leclerc ---------------------------------------------------------------------------------
+# Le magasin est inscrit dans l'adresse des pages (magasin-233301-…) : rien à enregistrer, il suffit
+# de trouver le drive le plus proche et de partir de son adresse.
+
+def leclerc_base(url_site):
+    """https://fd5-courses…/magasin-233301-233301-villenave-dornon.aspx → …/magasin-233301-233301-villenave-dornon/"""
+    return url_site[: -len(".aspx")] + "/" if url_site.endswith(".aspx") else url_site.rstrip("/") + "/"
+
+
+def choisir_leclerc(page):
+    lat, lng = PESSAC
+    statut, texte = page.evaluate("async u => { const r = await fetch(u); return [r.status, await r.text()] }",
+        "https://api-recherchemagasins.leclercdrive.fr/API_RechercheMagasins/api/v1/MapPoint/nearby"
+        f"?latitude={lat}&longitude={lng}&postalCode=33600")
+    m = plus_proche(json.loads(texte)["points"], lambda p: p.get("serviceType") == "drive" and p.get("state") == 0)
+    if not m:
+        raise RuntimeError("aucun drive Leclerc trouvé près de Pessac")
+    return {"nom": f"Leclerc Drive {m['name']}", "ref": m["noPL"], "ville": m["name"],
+            "distance": float(m["distance"]), "base": leclerc_base(m["urlSiteCourse"])}
+
+
+CHOIX = {"carrefour": choisir_carrefour, "auchan": choisir_auchan, "leclerc": choisir_leclerc}

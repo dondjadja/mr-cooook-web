@@ -47,6 +47,8 @@ class Extraction(unittest.TestCase):
         self.assertTrue(ex.page_bloquee(PAGE_ROBOT))
         self.assertTrue(ex.page_bloquee("<html></html>", 403))
         self.assertFalse(ex.page_bloquee(PAGE_VIDE, 200))
+        leclerc = '<html><head><!-- datadome script --><script src="https://js.datadome.co/tags.js"></script></head></html>'
+        self.assertFalse(ex.page_bloquee(leclerc, 200))
 
     def test_blocage_deguise_en_page_normale(self):
         joybuy = "<html><head><title>403 Interdit | Joybuy</title></head><body>Interruption temporaire du service</body></html>"
