@@ -128,7 +128,26 @@ def prix_depuis_html(html):
         if prix is not None:
             res.update(prix=prix, source="meta")
             return res
+    prix, barre = _depuis_fiche_leclerc(html or "")
+    if prix is not None:
+        res.update(prix=prix, prix_barre=barre, source="leclerc")
     return res
+
+
+def _depuis_fiche_leclerc(html):
+    """Fiche produit Leclerc Drive : ni JSON-LD produit ni meta, le prix est dans le bloc « pnlFicheProduit »."""
+    m = re.search(r"initOptions\('[^']*pnlFicheProduit',", html)
+    if not m:
+        return None, None
+    try:
+        donnees, _ = json.JSONDecoder().raw_decode(html[m.end():])
+    except ValueError:
+        return None, None
+    for obj in _objets(donnees):
+        if isinstance(obj, dict) and "nrPVUnitaireTTC" in obj:
+            promo = nombre_prix(obj.get("sPrixPromo") or "")
+            return (promo, obj["nrPVUnitaireTTC"]) if promo else (obj["nrPVUnitaireTTC"], None)
+    return None, None
 
 
 RE_TITRE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)

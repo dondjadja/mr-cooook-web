@@ -1,5 +1,5 @@
 {
-  "leclerc": {"accueil": "https://fd6-courses.leclercdrive.fr/magasin-123302-123302-Merignac---Chemin-Long.aspx", "frais": 0, "seuil_gratuite": null, "selecteur_prix": ""},
+  "leclerc": {"accueil": "https://fd5-courses.leclercdrive.fr/magasin-233301-233301-villenave-dornon.aspx", "frais": 0, "seuil_gratuite": null, "selecteur_prix": ""},
   "auchan": {"accueil": "https://www.auchan.fr/", "frais": 0, "seuil_gratuite": null, "selecteur_prix": ""},
   "carrefour": {"accueil": "https://www.carrefour.fr/", "frais": 0, "seuil_gratuite": null, "selecteur_prix": ""},
   "intermarche": {"accueil": "https://www.intermarche.com/", "frais": 0, "seuil_gratuite": null, "selecteur_prix": ""},

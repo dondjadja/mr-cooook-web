@@ -50,6 +50,13 @@ class Extraction(unittest.TestCase):
         leclerc = '<html><head><!-- datadome script --><script src="https://js.datadome.co/tags.js"></script></head></html>'
         self.assertFalse(ex.page_bloquee(leclerc, 200))
 
+    def test_fiche_leclerc(self):
+        fiche = ("Utilitaires.widget.initOptions('ctl00_main_ctl00_pnlFicheProduit',{\"objProduit\":{\"sLibelleLigne1\":"
+                 "\"Chorizo\",\"nrPVUnitaireTTC\":1.89,\"sPrixPromo\":\"0,00 €\"}});")
+        self.assertEqual((ex.prix_depuis_html(fiche)["prix"], ex.prix_depuis_html(fiche)["source"]), (1.89, "leclerc"))
+        promo = fiche.replace("0,00 €", "1,50 €")
+        self.assertEqual((ex.prix_depuis_html(promo)["prix"], ex.prix_depuis_html(promo)["prix_barre"]), (1.5, 1.89))
+
     def test_blocage_deguise_en_page_normale(self):
         joybuy = "<html><head><title>403 Interdit | Joybuy</title></head><body>Interruption temporaire du service</body></html>"
         self.assertTrue(ex.page_bloquee(joybuy, 200))
